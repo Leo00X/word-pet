@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+	<title>window</title>
+</head>
+<!-- 这里需要去掉边框  否则可能出现滑动 -->
+<body style="margin: 0px;padding: 0px;" >
+<div class="content">
+	<div id="paragraph">
+		这是一个浮窗h5
+	</div>
+	<div class="close_btn">
+		<img  id="close" src="close.png" style="width: 30px;height: 30px;"/>
+	</div>
+</div>
+
+<style>
+	.content{
+		background-color: green;
+		border-radius: 10px;
+		margin: 0px;
+		padding: 0px;
+		color: white;
+		width: 300px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 200px;
+	}
+	.close_btn{
+		position: absolute;
+		right: 10px;
+		top: 10px;
+	}
+
+</style>
+
+<script>
+	 
+	// 为按钮添加点击事件监听器
+	document.getElementById('close').addEventListener('click', function() {
+	    uniapp.sendDataToUni(0,"")
+	});
+	
+	function dataFromUniapp(type,msg){
+		console.log(type,msg);
+		  var paragraph = document.getElementById("paragraph");
+		  paragraph.textContent =type+ msg;
+	}
+	
+</script>
+
+</body>
+</html>

@@ -1,0 +1,107 @@
+{
+  "id": "android-floatwindow",
+  "displayName": "安卓悬浮窗插件 可自定义内容 悬浮窗 画中画 可拖拽，可切换浮窗大小",
+  "version": "1.0.25",
+  "description": "悬浮球，采用webview方式，自定义内容  h5与安卓通信，浮窗，全局悬浮窗，全局悬浮球，前后台悬浮，浮窗一像素保活",
+  "keywords": [
+    "浮窗",
+    "悬浮窗",
+    "悬浮球",
+    "全局悬浮窗",
+    "拖动效果"
+],
+  "repository": "",
+  "engines": {
+    "HBuilderX": "^3.91",
+    "uni-app": "^4.07",
+    "uni-app-x": "^4.07"
+  },
+  "dcloudext": {
+    "type": "uts",
+    "sale": {
+      "regular": {
+        "price": "19.99"
+      },
+      "sourcecode": {
+        "price": "499.99"
+      }
+    },
+    "contact": {
+      "qq": ""
+    },
+    "declaration": {
+      "ads": "无",
+      "data": "无",
+      "permissions": "<uses-permission android:name=\"android.permission.SYSTEM_ALERT_WINDOW\"/>"
+    },
+    "npmurl": "",
+    "darkmode": "√",
+    "i18n": "√",
+    "widescreen": "√"
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": {
+      "client": {
+        "uni-app": {
+          "vue": {
+            "vue2": "√",
+            "vue3": "√"
+          },
+          "web": {
+            "safari": "-",
+            "chrome": "-"
+          },
+          "app": {
+            "vue": "√",
+            "nvue": "√",
+            "android": {
+                "extVersion": "",
+                "minVersion": "21"
+            },
+            "ios": "-",
+            "harmony": "-"
+          },
+          "mp": {
+            "weixin": "-",
+            "alipay": "-",
+            "toutiao": "-",
+            "baidu": "-",
+            "kuaishou": "-",
+            "jd": "-",
+            "harmony": "-",
+            "qq": "-",
+            "lark": "-"
+          },
+          "quickapp": {
+            "huawei": "-",
+            "union": "-"
+          }
+        },
+        "uni-app-x": {
+          "web": {
+            "safari": "-",
+            "chrome": "-"
+          },
+          "app": {
+            "android": {
+                "extVersion": "",
+                "minVersion": "21"
+            },
+            "ios": "-",
+            "harmony": "-"
+          },
+          "mp": {
+            "weixin": "-"
+          }
+        }
+      },
+      "cloud": {
+        "tcb": "√",
+        "aliyun": "√",
+        "alipay": "√"
+      }
+    }
+  }
+}

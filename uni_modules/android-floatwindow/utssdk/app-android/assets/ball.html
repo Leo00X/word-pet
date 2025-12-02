@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+	<title>window</title>
+</head>
+<!-- 这里需要去掉边框  否则可能出现滑动 -->
+<body style="margin: 0px;padding: 0px;" >
+<div class="content">
+	<img  id="ball" src="logo.png" style="width: 80px;height: 80px;"/>
+</div>
+
+<style>
+	.content{
+		margin: 0px;
+		padding: 0px;
+		color: white;
+		width: 80px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 80px;
+	}
+
+
+	
+
+</style>
+
+<script>
+	 
+	// 为按钮添加点击事件监听器
+	document.getElementById('ball').addEventListener('click', function() {
+	    uniapp.sendDataToUni(1,"")
+	});
+	
+	
+</script>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "minSdkVersion": "19",
+  "dependencies": [
+  	  "io.github.justson:agentweb-core:v5.1.1-androidx"
+  ]
+}
