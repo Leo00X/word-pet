@@ -126,11 +126,9 @@ Clone 本仓库到本地。
 
 [x] 悬浮窗插件集成 & 本地 HTML 渲染
 
-[ ] AI 接入 (Doing)
+[x] AI 接入 (Doing)
 
 [ ] uniCloud 云函数开发
-
-[ ] 对接 Gemini API
 
 [ ] 交互升级
 
