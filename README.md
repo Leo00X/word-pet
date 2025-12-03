@@ -6,101 +6,148 @@
 
 📖 项目背景与定位 (Concept)
 
-💡 核心理念：从“内容提供”转向“行为监督”
+💡 **核心理念：从“内容提供”转向“行为监督”**
 
-市面上已经有足够优秀的背单词 App（如“词根单词”、“墨墨”）。WordParasite 不重复造轮子去维护海量词库，而是定位为 “学习伴侣/监督者” (Study Companion/Tracker)。
+市面上已经有足够优秀的背单词 App（如“词根单词”、“墨墨”）。WordParasite 不重复造轮子去维护海量词库，而是定位为 **“学习伴侣/监督者” (Study Companion/Tracker)**。
 
-它的角色：不教你背单词，但逼你去背单词。
+* **它的角色**：不教你背单词，但逼你去背单词。
+* **它的形态**：一只寄生在手机桌面的像素宠物，拥有 Gemini AI 赋予的“毒舌”人格。
 
-它的形态：一只寄生在手机桌面的像素宠物，拥有 Gemini AI 赋予的“毒舌”人格。
+---
+
+📱 App 界面与功能指南 (User Guide)
+
+本项目采用 **赛博朋克/复古像素 (Cyberpunk/Pixel)** 设计风格，将手机视为“宿主”，App 为“控制终端”。
+
+### 1. 主控台 (Main Dashboard)
+进入 App 首页，您将看到模拟掌机的操作界面：
+* **状态监视屏**：
+    * **宠物投影**：显示当前寄生兽的形象（悬浮/静止）。
+    * **HP (心情)**：根据您的行为变化。摸鱼扣血，学习回血。
+    * **XP (经验)**：积累学习时长升级。
+    * **实时交互**：点击屏幕中的宠物，它会随机弹出气泡对话。
+
+### 2. 状态监控 (Status Tab)
+点击下方 **“状态监控”** 切换卡片：
+* **系统连接指示灯**：
+    * `悬浮窗`：检测悬浮权限状态（🟢正常 / 🔴断开）。
+    * `监控权`：检测 UsageStats 权限状态。
+* **核心操作键**：
+    * **🟢 召唤寄生兽 (SUMMON)**：在桌面生成悬浮窗。
+    * **🔴 收回寄生兽 (RECALL)**：关闭悬浮窗。
+    * **👁 开启全域监控 (START MONITOR)**：启动后台轮询服务，开始记录应用使用情况。
+* **📝 成长日记 (Growth Log)**：
+    * 实时显示最近 3 条行为记录（如“投喂成功”、“误食毒药”）。
+    * 点击 **“查看全部档案”** 可进入历史记录页，查看所有过往数据（支持本地持久化存储）。
+
+### 3. 系统设置 (Config Tab)
+点击下方 **“系统设置”** 切换卡片：
+* **🍖 投喂规则 (Whitelist / 白名单)**：
+    * 点击进入 **应用选择器**。
+    * 勾选您的学习软件（如：墨墨背单词、多邻国）。
+    * **效果**：使用这些软件时，宠物心情增加，经验增加。
+* **☠️ 禁忌物品 (Blacklist / 黑名单)**：
+    * 点击进入 **应用选择器**。
+    * 勾选您的娱乐软件（如：抖音、王者荣耀）。
+    * **效果**：使用这些软件时，宠物心情大减，触发毒舌警告或红色暴怒模式。
+* **⚡ 扫描频率 (Power Saving)**：
+    * **极速 (3s)**：反应最快，但耗电。
+    * **省电 (60s)**：仅用于统计时长，适合后台挂机。
+* **🖥️ 监控终端 (Terminal)**：
+    * 点击打开黑客风格的 **日志控制台**，查看底层 Native.js 的实时扫描日志与报错信息。
+
+---
 
 🌟 核心功能 (Key Features)
 
-1. 👻 真·桌面悬浮宠物 (Global Floating Window)
+1. **👻 真·桌面悬浮宠物 (Global Floating Window)**
+    * 利用 Android 系统级悬浮窗权限，让宠物始终“寄生”在屏幕边缘。
+    * **情绪反馈**：
+        * **开心模式**：检测到白名单应用（背单词），宠物发送鼓励气泡（“好耶！是精神食粮！”）。
+        * **暴怒模式**：检测到黑名单应用（摸鱼），宠物变身并发送警告（“你在干什么？！快去背单词！💢”）。
 
-利用 Android 系统级悬浮窗权限，让宠物始终“寄生”在屏幕边缘，无法被轻易忽视。
+2. **👁️ 上帝之眼：无感监控 (Usage Stats Monitor)**
+    * **技术原理**：通过 Native.js 调用 Android `UsageStatsManager`，毫秒级轮询当前前台应用包名。
+    * **智能判别**：自动识别用户是在“学习”还是“摸鱼”，并根据黑白名单配置进行奖惩。
 
-动态交互：基于 WebView 渲染，支持 GIF/Lottie 动画，宠物会眨眼、跳动。
+3. **🧠 AI 注入灵魂 (Gemini Persona)** [WIP]
+    * 接入 Google Gemini API，让宠物拥有记忆。
+    * **Prompt 设定**：“你是一只傲娇的电子猫。看到用户今天刷了2小时抖音只背了5分钟单词。请生成一句50字以内的毒舌嘲讽。”
 
-情绪系统：
+4. **⚡ 本地化存储与缓存**
+    * **应用列表缓存**：首次扫描后自动缓存已安装应用列表，实现“秒开”选择页。
+    * **数据持久化**：心情值、经验值、历史日记均写入本地 Storage，杀后台不丢失。
 
-开心模式：检测到前台是背单词软件时，宠物转圈圈加经验。
-
-暴怒模式：检测到你在刷抖音/B站超过 10 分钟，宠物变身“恶魔”，挡住字幕或弹窗警告。
-
-2. 👁️ 上帝之眼：无感监控 (Usage Stats Monitor)
-
-无需手动打卡，App 拥有“上帝视角”。
-
-技术原理：通过 Native.js 调用 Android UsageStatsManager，毫秒级轮询当前前台应用包名。
-
-场景：
-
-你在背单词 -> 自动记录专注时长。
-
-你在摸鱼 -> 记录摸鱼时长并发送给 AI 告状。
-
-3. 🧠 AI 注入灵魂 (Gemini Persona)
-
-接入 Google Gemini API，让宠物拥有记忆和性格。
-
-数据投喂：{ study_time: 5min, play_time: 2h, app: "TikTok" }
-
-Prompt 设定：“你是一只傲娇的电子猫。看到用户今天刷了2小时抖音只背了5分钟单词。请生成一句50字以内的毒舌嘲讽。”
-
-反馈：点击宠物，它会气泡弹窗：“哟，大忙人，刷抖音的手指头不酸吗？单词书都落灰了！(￣^￣)”
-
-4. ⚡ 极速交互与强力催促
-
-一键唤起：通过 HTML5Plus API (plus.runtime.openURL) 直接从宠物菜单跳转到“词根单词”App，无缝切换。
-
-日历寄生：利用系统日历权限，直接向手机日历写入复习计划。即使 App 被杀后台，系统日历也会按时弹窗提醒。
+---
 
 🛠️ 技术架构 (Tech Stack)
 
-本项目完全基于 HBuilderX 生态构建，充分利用 uni-app 的跨平台能力与 Android 原生能力。
+* **IDE**: HBuilderX (强依赖 AST 语法提示)
+* **框架**: uni-app (Vue3) + UTS
+* **核心插件**:
+    * `android-floatwindow` (UTS): 处理悬浮窗与 WebView 通信。
+    * Native.js: 处理 Android 原生权限申请、应用列表扫描、前台应用监控。
 
-模块
+📂 目录结构 | Project Structure
 
-技术方案
+```text
+WordParasite/
+├── pages/
+│   ├── index/
+│   │   └── index.vue       # [核心] 赛博朋克风格主控台
+│   ├── config/
+│   │   └── app-selector.vue # [新] 应用选择器 (支持搜索、缓存、刷新)
+│   └── log/
+│       └── log-history.vue  # [新] 历史日记档案库
+├── static/
+│   ├── logo.png            # 应用图标
+│   └── pet.html            # 宠物的“肉体” (本地 HTML/CSS 动画)
+├── uni_modules/
+│   └── android-floatwindow # 悬浮窗插件
+├── utils/
+│   ├── monitor.js          # 监控逻辑 (旧版保留)
+│   └── appTool.js          # [新] Android应用扫描工具 (含防卡死分片算法)
+├── App.vue                 # 生命周期管理
+├── main.js                 # Vue 入口
+├── manifest.json           # 权限配置 (含 QUERY_ALL_PACKAGES)
+├── pages.json              # 页面路由配置
+└── README.md
+````
 
-关键说明
+🚀 快速开始 | Getting Started
 
-IDE
+⚠️ **注意：本项目必须制作自定义调试基座才能运行。**
 
-HBuilderX
+1.  **环境准备**
 
-强依赖其 AST 语法提示与 schema2code 生成能力
+      * 下载 HBuilderX。
+      * 准备 Android 手机（开启开发者模式）。
 
-框架
+2.  **插件配置**
 
-uni-app (Vue3)
+      * 在 `manifest.json` 中获取 DCloud AppID。
+      * 去插件市场绑定 `android-floatwindow` 试用。
 
-核心逻辑层
+3.  **运行项目**
 
-视觉层
+      * 连接手机。
+      * 菜单栏：运行 -\> 运行到手机 -\> **制作自定义调试基座**。
+      * 基座制作完成后，选择 **“自定义调试基座”** 运行。
 
-UTS 插件
+✅ 开发进度 | Roadmap
 
-android-floatwindow (处理悬浮窗与 WebView)
+  - [x] **基础设施搭建** (Vue3 + Native.js)
+  - [x] **核心能力实现** (悬浮窗 + 应用统计权限)
+  - [x] **界面重构** (赛博朋克像素风 UI)
+  - [x] **黑白名单系统** (应用扫描 + 本地存储)
+  - [x] **成长日记** (数据持久化 + 历史回顾)
+  - [ ] uniCloud 云函数开发
+  - [ ] AI 接入 (Deepseek-V3.2 API)
+  - [ ] 新增联网宠物（github）、本地宠物的选择
+  - [ ] 优化宠物情绪动画及情绪系统 (根据应用包名改变表情) 
+  - [ ] 屏幕强制干扰功能（宠物变大）
 
-监控层
-
-Native.js
-
-直接调用 Java 层 UsageStatsManager，无需第三方保活插件
-
-数据层
-
-uniCloud
-
-承载 Gemini API 调用与用户数据同步
-
-表单生成
-
-Schema2Code
-
-利用 uniCloud DB Schema 秒级生成打卡统计页
+---
 
 📂 核心代码逻辑索引
 
@@ -126,131 +173,10 @@ plus.runtime.openURL("package-name://...", (err) => {
 });
 
 
-📂 目录结构 | Project Structure
-
-WordParasite/
-├── pages/
-│   └── index/
-│       └── index.vue       # 控制台主页 (宠物开关、监控开关)
-├── static/
-│   ├── logo.png            # 应用图标
-│   └── pet.html            # 宠物的“肉体” (本地 HTML/CSS 动画)
-├── uni_modules/
-│   └── android-floatwindow # [核心] 悬浮窗 UTS 插件 (含 utssdk/encrypt)
-├── utils/
-│   └── monitor.js          # [核心] Native.js 监控逻辑 (Java反射调用)
-├── App.vue                 # 应用入口 (生命周期管理)
-├── main.js                 # Vue 初始化入口
-├── manifest.json           # 权限配置 (SYSTEM_ALERT_WINDOW, PACKAGE_USAGE_STATS)
-├── pages.json              # 页面路由配置
-└── README.md
-
-
-
-🚀 快速开始 | Getting Started
-
-⚠️ 注意：本项目无法使用标准基座运行，必须制作自定义调试基座。
-
-1. 环境准备
-
-下载并安装 HBuilderX (最新版)。
-
-拥有一台开启“开发者模式”的 Android 手机。
-
-2. 导入项目
-
-Clone 本仓库到本地。
-
-在 HBuilderX 中打开项目文件夹。
-
-3. 插件配置 (关键步骤)
-
-由于本项目使用了付费/试用插件 android-floatwindow，你需要：
-
-在 manifest.json 中重新获取你的 DCloud AppID。
-
-前往 DCloud 插件市场 找到该插件。
-
-点击“试用”并绑定你的 AppID。
-
-在 HBuilderX manifest.json -> App原生插件配置 中勾选该云端插件。
-
-4. 运行项目
-
-连接手机。
-
-菜单栏：运行 -> 运行到手机 -> 制作自定义调试基座 (打包需要几分钟)。
-
-基座制作完成后，在手机上安装。
-
-菜单栏：运行 -> 运行到手机 -> 运行基座选择 -> 勾选 自定义调试基座。
-
-点击运行。
-
-✅ 开发进度 | Roadmap
-
-[x] 基础设施搭建
-
-[x] HBuilderX Vue3 项目初始化
-
-[x] 自定义基座环境配置
-
-[x] 核心能力实现
-
-[x] 原生权限申请 (悬浮窗、应用统计)
-
-[x] Native.js 获取当前前台包名 (监控逻辑)
-
-[x] 悬浮窗插件集成 & 本地 HTML 渲染
-
-[ ] 初步优化APP界面 (Doing)
-
-[ ] AI 接入 
-
-[ ] uniCloud 云函数开发
-
-[ ] 对接 Gemini API
-
-[ ] 交互升级
-
-[ ] 宠物情绪系统 (根据应用包名改变表情)
-
-[ ] 单词数据本地化存储
-
 📄 License
 
 MIT License.
+Created by WordParasite Team.
 
-Created by WordParasite Team with HBuilderX & uni-app.
+```
 
-
----
-
-### 给你的 GitHub 上传建议
-
-现在你的项目在本地已经跑通了，上传到 GitHub 时有几个小技巧：
-
-1.  **忽略文件 (.gitignore)**：
-    HBuilderX 产生了很多编译缓存，**千万不要**上传到 GitHub，否则别人下载下来会报错。
-    请确保你的项目根目录下有一个 `.gitignore` 文件，内容至少包含：
-    ```text
-    node_modules/
-    unpackage/
-    .hbuilderx/
-    *.apk
-    ```
-
-2.  **关于付费插件**：
-    你在 `uni_modules` 里的 `android-floatwindow` 可能是加密的或者包含试用证书。
-    * **原则上**：你可以上传 `uni_modules` 目录结构，但是别人下载后，因为 AppID 变了，他们必须自己去 DCloud 市场点“试用”并重新打基座才能跑起来。
-    * **建议**：在 README 的“快速开始”部分，我已经特意加粗了关于插件试用的说明，这非常关键。
-
-3.  **如何上传**：
-    如果你电脑上装了 Git，直接在项目文件夹右键打开终端：
-    ```bash
-    git init
-    git add .
-    git commit -m "feat: 完成悬浮窗本地渲染与应用监控核心逻辑"
-    git branch -M main
-    git remote add origin <你的GitHub仓库地址>
-    git push -u origin main
