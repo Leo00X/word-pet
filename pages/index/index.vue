@@ -79,8 +79,12 @@
         </button>
 
         <view class="log-card">
-            <text class="panel-title">📝 成长日记</text>
-            <scroll-view scroll-y="true" class="growth-scroll">
+            <view class="log-header-row">
+                <text class="panel-title">📝 最近动态</text>
+                <text class="more-btn" @click="openHistory">查看全部档案 ></text>
+            </view>
+            
+            <view class="growth-preview">
                 <view v-for="(item, index) in growthLogs" :key="index" class="log-item">
                     <text class="log-time">[{{ item.time }}]</text>
                     <text class="log-content">{{ item.msg }}</text>
@@ -88,8 +92,8 @@
                         {{ item.val > 0 ? '+' : '' }}{{ item.val }}
                     </text>
                 </view>
-                <view v-if="growthLogs.length === 0" class="empty-log">暂无记录...</view>
-            </scroll-view>
+                <view v-if="growthLogs.length === 0" class="empty-log">暂无今日记录...</view>
+            </view>
         </view>
       </view>
 
@@ -156,6 +160,7 @@
 </template>
 
 <script>
+// 引入 UTS 插件
 import { FloatWindow } from "@/uni_modules/android-floatwindow"; 
 
 export default {
@@ -170,7 +175,7 @@ export default {
       mood: 80, 
       exp: 45,
       petMessage: "等待指令...",
-      growthLogs: [], // 成长日记数据
+      growthLogs: [], // 成长日记数据 (仅首页预览)
       
       // 系统数据
       logText: ">>> 系统初始化...\n",
@@ -192,34 +197,66 @@ export default {
           this.floatWinInstance = new FloatWindow();
       }
       this.petMessage = this.isPetShown ? "我在看着你..." : "zzz...";
+
+      // 🔥 读取最近的日志显示在首页 (取前3条)
+      const fullLogs = uni.getStorageSync('pet_growth_logs') || [];
+      this.growthLogs = fullLogs.slice(0, 3);
+      
+      // 🔥 读取心情值缓存 (防止重启后心情重置)
+      const cachedMood = uni.getStorageSync('pet_mood_cache');
+      if (cachedMood !== '' && cachedMood !== null) {
+          this.mood = cachedMood;
+      }
   },
   methods: {
     showToast(msg) {
         uni.showToast({ title: msg, icon: 'none' });
     },
-	
+    
+    // 打开应用选择器
     openSelector(mode) {
-        // 1. 先显示 Loading
         uni.showLoading({ title: '准备中...', mask: true });
-        
-        // 2. 稍微延迟一点跳转，防止 UI 线程太忙没显示出 Loading
         setTimeout(() => {
             uni.hideLoading();
             uni.navigateTo({
                 url: `/pages/config/app-selector?mode=${mode}`,
-                // 失败回调
                 fail: () => uni.hideLoading()
             });
         }, 100);
     },
-	
-    // 记录成长日记
+
+    // 打开历史记录页
+    openHistory() {
+        uni.navigateTo({ url: '/pages/log/log-history' });
+    },
+    
+    // 🔥 核心：记录成长日记并持久化
     addGrowthLog(msg, val) {
         const time = new Date().toLocaleTimeString('zh-CN', {hour12: false});
-        this.growthLogs.unshift({ time, msg, val }); // 最新的在最上面
+        const timestamp = Date.now();
+        const newLog = { time, msg, val, timestamp };
+
+        // 1. 更新内存数组 (用于首页预览，只留前3条)
+        this.growthLogs.unshift(newLog);
+        if (this.growthLogs.length > 3) this.growthLogs.pop();
+
+        // 2. 更新本地存储 (读取 -> 插入 -> 保存)
+        try {
+            let history = uni.getStorageSync('pet_growth_logs') || [];
+            history.unshift(newLog);
+            // 限制最大存储数量
+            if (history.length > 500) {
+                history = history.slice(0, 500);
+            }
+            uni.setStorageSync('pet_growth_logs', history);
+            // 顺便保存心情
+            uni.setStorageSync('pet_mood_cache', this.mood);
+        } catch (e) {
+            console.error("日志存储失败", e);
+        }
     },
 
-    // 记录系统日志
+    // 记录系统终端日志
     addLog(msg) {
       const time = new Date().toLocaleTimeString('zh-CN', {hour12: false});
       this.logText += `[${time}] ${msg}\n`;
@@ -327,7 +364,6 @@ export default {
                      this.addGrowthLog("与宠物互动", 2);
 
                      // 3. 发送给悬浮窗 (显示气泡)
-                     // 延迟一点确保渲染
                      setTimeout(() => {
                          this.floatWinInstance.sendDataToJs(1, "别戳我！<br>去背单词！");
                      }, 100);
@@ -368,7 +404,7 @@ export default {
       }
     },
 
-    // --- 核心监控逻辑 ---
+    // --- 核心监控逻辑 (含黑白名单) ---
     checkCurrentApp() {
       try {
         const context = plus.android.runtimeMainActivity();
@@ -380,17 +416,15 @@ export default {
         if (!manager) return;
 
         const endTime = System.currentTimeMillis();
-        const startTime = endTime - 10000; // 查询过去10秒的状态
+        const startTime = endTime - 10000; 
         const statsList = manager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime);
         
-        // 使用 invoke 调用 size，防止 native.js 兼容问题
         const size = plus.android.invoke(statsList, "size");
         
         if (size > 0) {
           let currentPackage = "";
           let lastTime = 0;
           
-          // 遍历找到最新的前台应用
           for (let i = 0; i < size; i++) {
             const stats = plus.android.invoke(statsList, "get", i);
             const timeObj = plus.android.invoke(stats, "getLastTimeUsed");
@@ -402,57 +436,42 @@ export default {
             }
           }
 
-          // 过滤掉桌面启动器 (launcher) 和自己 (word-pet)
-          // 注意：如果想监控自己，就把 currentPackage !== context.getPackageName() 去掉
           if (currentPackage && 
               currentPackage.indexOf("launcher") === -1 && 
               currentPackage.indexOf("home") === -1) {
               
-              // 只有当包名发生变化时才触发逻辑，避免每3秒刷屏
               if (this.lastPackage !== currentPackage) {
                 this.addLog("检测到应用切换: " + currentPackage);
                 this.lastPackage = currentPackage;
                 
-                // --- 1. 读取配置 (同步读取本地存储) ---
+                // --- 判定逻辑 ---
                 const whitelist = uni.getStorageSync('pet_whitelist') || [];
                 const blacklist = uni.getStorageSync('pet_blacklist') || [];
                 const appName = this.getAppName(currentPackage);
 
-                // --- 2. 判定逻辑 ---
                 if (whitelist.includes(currentPackage)) {
-                    // ✅ 命中白名单 (学习软件)
-                    this.mood = Math.min(100, this.mood + 5); // 心情+5 (上限100)
-                    this.exp += 10; // 经验+10
-                    
-                    // 记录日记
+                    // 白名单
+                    this.mood = Math.min(100, this.mood + 5); 
+                    this.exp += 10;
                     this.addGrowthLog(`投喂成功 (${appName})`, 5);
                     this.addLog(`>>> 正在学习: ${appName} (经验+10)`);
-                    
-                    // 让宠物开心 (发送 Type 1 消息给 HTML)
                     if(this.floatWinInstance) {
                          this.floatWinInstance.sendDataToJs(1, "好耶！是精神食粮！<br>经验+10");
                     }
 
                 } else if (blacklist.includes(currentPackage)) {
-                    // ❌ 命中黑名单 (娱乐软件)
-                    this.mood = Math.max(0, this.mood - 10); // 心情-10 (下限0)
-                    
-                    // 记录日记
+                    // 黑名单
+                    this.mood = Math.max(0, this.mood - 10);
                     this.addGrowthLog(`误食毒药 (${appName})`, -10);
                     this.addLog(`>>> 警告: 正在摸鱼 ${appName} (心情-10)`);
-                    
-                    // 让宠物愤怒 (发送 Type 2 消息给 HTML，触发红色特效)
                     if(this.floatWinInstance) {
                          this.floatWinInstance.sendDataToJs(2, "你在干什么？！<br>快去背单词！(💢)");
                     }
 
                 } else {
-                    // ⚪ 未知/中性应用
-                    // 稍微扣一点心情，表示无聊，或者不扣
+                    // 未知
                     this.mood = Math.max(0, this.mood - 1);
-                    this.addLog(`>>> 正在使用: ${appName} (未知应用)`);
-                    
-                    // 恢复平静 (Type 3)
+                    this.addLog(`>>> 正在使用: ${appName}`);
                     if(this.floatWinInstance) {
                          this.floatWinInstance.sendDataToJs(3, ""); 
                     }
@@ -461,16 +480,11 @@ export default {
           }
         }
       } catch (e) {
-        // 这里的报错通常可以忽略，不影响下次运行
         console.log("Monitor tick error:", e); 
       }
     },
 
-    // --- 辅助方法：简单获取应用显示名称 ---
     getAppName(pkg) {
-        // 这里的逻辑比较简单，直接取包名的最后一部分作为名字显示
-        // 例如: com.tencent.mm -> mm
-        // 实际开发中，可以在 app-selector 选择时把中文名一并存入 Storage，这里再取出来
         if (!pkg) return "未知";
         const parts = pkg.split('.');
         return parts[parts.length - 1];
@@ -613,22 +627,33 @@ $text-dim: #747d8c;
 .btn-yellow { background: $accent-yellow; color: #000; }
 .terminal-btn { background: #2f3542; border: 1px solid #57606f; margin-top: 20px; font-size: 12px; }
 
-/* 日志卡片 */
+/* 日志卡片 (优化版) */
 .log-card {
     background: #0f1526;
     border-radius: 8px;
-    padding: 10px;
+    padding: 12px;
     margin-top: 10px;
+    border: 1px solid #2f3542;
 }
-.panel-title { font-size: 12px; color: $text-dim; margin-bottom: 8px; display: block; }
-.growth-scroll { height: 80px; }
-.log-item { display: flex; font-size: 11px; margin-bottom: 4px; }
-.log-time { color: #666; margin-right: 5px; }
-.log-content { flex: 1; color: #ccc; }
-.log-val { font-weight: bold; }
-.t-green { color: $accent-green; }
-.t-red { color: $accent-red; }
-.empty-log { color: #444; text-align: center; font-size: 10px; padding: 10px; }
+.log-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #2f3542;
+    padding-bottom: 5px;
+}
+.panel-title { font-size: 13px; color: #a4b0be; font-weight: bold; margin: 0; }
+.more-btn { font-size: 11px; color: #3742fa; padding: 2px 5px; }
+
+.growth-preview { min-height: 60px; }
+.log-item { display: flex; font-size: 11px; margin-bottom: 6px; align-items: center; }
+.log-time { color: #57606f; margin-right: 8px; font-family: monospace; }
+.log-content { flex: 1; color: #dfe4ea; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.log-val { font-weight: bold; margin-left: 5px; min-width: 25px; text-align: right; }
+.t-green { color: #2ed573; }
+.t-red { color: #ff4757; }
+.empty-log { color: #57606f; text-align: center; font-size: 10px; padding: 10px; }
 
 /* 状态标签 */
 .mini-status-row { font-size: 10px; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; color: $text-dim; }
