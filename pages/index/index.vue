@@ -69,7 +69,11 @@ export default {
   },
   // 使用 onShow 而不是 onLoad，这样从设置页回来能自动刷新状态
   onShow() {
-    this.checkPermissions();
+      this.checkPermissions();
+      // 确保实例存在
+      if (!this.floatWinInstance) {
+          this.floatWinInstance = new FloatWindow();
+      }
   },
   methods: {
     addLog(msg) {
@@ -151,51 +155,60 @@ export default {
     // pages/index/index.vue
     
     showFloatWindow() {
-      try {
-        const rawPath = '/static/pet.html';
-        const absolutePath = plus.io.convertLocalFileSystemURL(rawPath);
-        
-        // 1. 实例化 (如果不存在)
-        if (!this.floatWinInstance) {
-          this.floatWinInstance = new FloatWindow();
+        try {
+            const rawPath = '/static/pet.html';
+            const absolutePath = plus.io.convertLocalFileSystemURL(rawPath);
+            
+            if (!this.floatWinInstance) {
+                this.floatWinInstance = new FloatWindow();
+            }
+    
+            // 1. 加载路径
+            this.floatWinInstance.loadUrl(absolutePath);
+    
+            // 2. 设置宽高
+            const w = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
+            const h = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
+            this.floatWinInstance.setFixedWidthHeight(true, w, h);
+    
+            // 3. 设置位置
+            const x = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
+            const y = this.floatWinInstance.convertHtmlPxToAndroidPx(300);
+            this.floatWinInstance.setLocation(x, y);
+    
+            // 4. 设置显示模式 (全局)
+            this.floatWinInstance.setShowPattern(3);
+            
+            // 5. 开启拖拽
+            this.floatWinInstance.setDragEnable(true);
+    
+            // 🔥【核心补充】安装“耳朵”，监听来自 HTML 的消息
+            // 注意：这里要用箭头函数 => 才能在内部使用 this.addLog
+            this.floatWinInstance.onListenerWebData((type, msg) => {
+                console.log("收到悬浮窗消息:", type, msg);
+                this.addLog(`📩 收到: ${msg}`);
+    
+                // 互动逻辑：如果收到点击消息，马上回复宠物，让它显示气泡
+                if (msg === 'pet_clicked') {
+                     // 延迟一点点回复，模拟思考
+                     setTimeout(() => {
+                         // 参数1=1 (普通气泡), 参数2=内容
+                         this.floatWinInstance.sendDataToJs(1, "别戳我！<br>我在监控你！");
+                     }, 200);
+                }
+            });
+    
+            // 6. 最后展示
+            this.floatWinInstance.createAndShow();
+    
+            this.isPetShown = true;
+            this.addLog("✅ 寄生兽召唤成功 (交互已就绪)");
+    
+        } catch (e) {
+            console.error("插件报错:", e);
+            this.addLog("❌ 启动失败: " + e.message);
+            this.floatWinInstance = null;
         }
-    
-        // 2. 设置加载的 URL
-        // 文档 API: loadUrl(url)
-        this.floatWinInstance.loadUrl(absolutePath);
-    
-        // 3. 设置宽高 (必须先转为 Android 像素)
-        // 文档 API: setFixedWidthHeight(enable, width, height)
-        // 文档 API: convertHtmlPxToAndroidPx(px)
-        const w = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
-        const h = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
-        this.floatWinInstance.setFixedWidthHeight(true, w, h);
-    
-        // 4. 设置位置 (坐标 x=200, y=300)
-        // 文档 API: setLocation(x, y) 
-        // 注意：如果想用 Gravity (如居中) 可以改用 setGravity
-        const x = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
-        const y = this.floatWinInstance.convertHtmlPxToAndroidPx(300);
-        this.floatWinInstance.setLocation(x, y);
-    
-        // 5. 🔥【核心】设置显示模式：全局一直显示
-        // 文档 API: setShowPattern(pattern) -> 3 代表全局
-        this.floatWinInstance.setShowPattern(3);
-    
-        // 6. 开启拖拽 (对应你之前的 moveable)
-        // 文档 API: setDragEnable(enable)
-        this.floatWinInstance.setDragEnable(true);
-        
-        // 7. 最终创建并显示
-        // 文档 API: createAndShow()
-        this.floatWinInstance.createAndShow();
-    
-        this.isPetShown = true;
-        this.addLog("✅ 寄生兽已召唤 (全局模式)");
-      } catch (e) {
-        console.error(e);
-        this.addLog("❌ 插件调用异常: " + e.message);
-      }
     },
 
     // --- 3. 监控 (彻底修复 size is not a function) ---

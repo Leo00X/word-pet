@@ -1,53 +1,130 @@
-👾 WordParasite (单词寄生兽)
+👾 WordParasite (单词寄生兽) | Desktop AI Companion
 
 "It watches you. It judges you. It forces you to learn."
-一个基于 Android 系统层的桌面 AI 伴侣，在你摸鱼时“重拳出击”的背单词监督工具。
 
-📖 项目简介 | Introduction
+一个基于 Android 原生能力的桌面 AI 伴侣。它不是单词书，它是住在你手机桌面上、在你摸鱼时“重拳出击”的毒舌监督者。
 
-WordParasite 是一个反传统的背单词应用。它不提供枯燥的单词书，而是一个**“寄生”在手机桌面的电子宠物**。
+📖 项目背景与定位 (Concept)
 
-利用 Android 原生权限，它实时监控你的应用使用情况。当你长时间沉迷于短视频或游戏时，桌面宠物会通过 AI (Gemini) 生成毒舌评论，甚至挡住屏幕，强制你完成背单词任务才能解锁手机。
+💡 核心理念：从“内容提供”转向“行为监督”
 
-核心理念：与其依赖自律，不如依赖“寄生兽”的他律。
+市面上已经有足够优秀的背单词 App（如“词根单词”、“墨墨”）。WordParasite 不重复造轮子去维护海量词库，而是定位为 “学习伴侣/监督者” (Study Companion/Tracker)。
 
-🌟 核心特性 | Features
+它的角色：不教你背单词，但逼你去背单词。
 
-👻 全局桌面悬浮 (Global Floating Window)
+它的形态：一只寄生在手机桌面的像素宠物，拥有 Gemini AI 赋予的“毒舌”人格。
 
-基于 Webview 的高性能悬浮窗，支持 HTML5/CSS3 动画。
+🌟 核心功能 (Key Features)
 
-宠物始终悬浮在所有应用之上，无法被轻易忽视。
+1. 👻 真·桌面悬浮宠物 (Global Floating Window)
 
-👁️ 上帝之眼 (App Usage Monitor)
+利用 Android 系统级悬浮窗权限，让宠物始终“寄生”在屏幕边缘，无法被轻易忽视。
 
-利用 Native.js 直接调用 Android UsageStatsManager。
+动态交互：基于 WebView 渲染，支持 GIF/Lottie 动画，宠物会眨眼、跳动。
 
-毫秒级检测当前前台应用（如抖音、王者荣耀），无需后台保活插件。
+情绪系统：
 
-🧠 AI 毒舌内核 (Gemini Powered) [WIP]
+开心模式：检测到前台是背单词软件时，宠物转圈圈加经验。
 
-接入 Google Gemini API。
+暴怒模式：检测到你在刷抖音/B站超过 10 分钟，宠物变身“恶魔”，挡住字幕或弹窗警告。
 
-根据你的摸鱼时长和行为，生成个性化的嘲讽或鼓励语录。
+2. 👁️ 上帝之眼：无感监控 (Usage Stats Monitor)
 
-🔒 强制锁定机制 [Planned]
+无需手动打卡，App 拥有“上帝视角”。
 
-达到摸鱼阈值后，宠物变大覆盖屏幕，必须答对单词才能恢复。
+技术原理：通过 Native.js 调用 Android UsageStatsManager，毫秒级轮询当前前台应用包名。
 
-🛠️ 技术栈 | Tech Stack
+场景：
 
-IDE: HBuilderX
+你在背单词 -> 自动记录专注时长。
 
-Framework: uni-app (Vue 3)
+你在摸鱼 -> 记录摸鱼时长并发送给 AI 告状。
 
-Platform: Android Only (由于涉及底层权限)
+3. 🧠 AI 注入灵魂 (Gemini Persona)
 
-Plugins:
+接入 Google Gemini API，让宠物拥有记忆和性格。
 
-android-floatwindow (UTS插件): 处理悬浮窗核心逻辑。
+数据投喂：{ study_time: 5min, play_time: 2h, app: "TikTok" }
 
-Native.js: 处理 Android 原生权限申请与应用统计。
+Prompt 设定：“你是一只傲娇的电子猫。看到用户今天刷了2小时抖音只背了5分钟单词。请生成一句50字以内的毒舌嘲讽。”
+
+反馈：点击宠物，它会气泡弹窗：“哟，大忙人，刷抖音的手指头不酸吗？单词书都落灰了！(￣^￣)”
+
+4. ⚡ 极速交互与强力催促
+
+一键唤起：通过 HTML5Plus API (plus.runtime.openURL) 直接从宠物菜单跳转到“词根单词”App，无缝切换。
+
+日历寄生：利用系统日历权限，直接向手机日历写入复习计划。即使 App 被杀后台，系统日历也会按时弹窗提醒。
+
+🛠️ 技术架构 (Tech Stack)
+
+本项目完全基于 HBuilderX 生态构建，充分利用 uni-app 的跨平台能力与 Android 原生能力。
+
+模块
+
+技术方案
+
+关键说明
+
+IDE
+
+HBuilderX
+
+强依赖其 AST 语法提示与 schema2code 生成能力
+
+框架
+
+uni-app (Vue3)
+
+核心逻辑层
+
+视觉层
+
+UTS 插件
+
+android-floatwindow (处理悬浮窗与 WebView)
+
+监控层
+
+Native.js
+
+直接调用 Java 层 UsageStatsManager，无需第三方保活插件
+
+数据层
+
+uniCloud
+
+承载 Gemini API 调用与用户数据同步
+
+表单生成
+
+Schema2Code
+
+利用 uniCloud DB Schema 秒级生成打卡统计页
+
+📂 核心代码逻辑索引
+
+A. 监控逻辑 (Monitor)
+
+位于 utils/monitor.js。
+
+// Native.js 调用 Android 原生 API 获取前台包名
+var usm = context.getSystemService(Context.USAGE_STATS_SERVICE);
+var stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, ...);
+// ...遍历获取 lastTimeUsed 最大的应用...
+
+
+B. 悬浮窗渲染 (Visual)
+
+位于 pages/index/index.vue 及 static/pet.html。
+使用 plus.io.convertLocalFileSystemURL 加载本地 HTML 资源，确保离线可用。
+
+C. App 跳转 (Launcher)
+
+plus.runtime.openURL("package-name://...", (err) => {
+    uni.showToast({title: "请先安装背单词软件"});
+});
+
 
 📂 目录结构 | Project Structure
 
@@ -126,7 +203,9 @@ Clone 本仓库到本地。
 
 [x] 悬浮窗插件集成 & 本地 HTML 渲染
 
-[ ] AI 接入 (Doing)
+[ ] 初步优化APP界面 (Doing)
+
+[ ] AI 接入 
 
 [ ] uniCloud 云函数开发
 
