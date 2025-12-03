@@ -148,40 +148,53 @@ export default {
       }
     },
 
+    // pages/index/index.vue
+    
     showFloatWindow() {
       try {
         const rawPath = '/static/pet.html';
         const absolutePath = plus.io.convertLocalFileSystemURL(rawPath);
         
-        // 简单校验
-        const File = plus.android.importClass("java.io.File");
-        if (!new File(absolutePath).exists()) {
-          this.addLog("❌ 错误：找不到 pet.html");
-          return;
-        }
-
+        // 1. 实例化 (如果不存在)
         if (!this.floatWinInstance) {
           this.floatWinInstance = new FloatWindow();
         }
-
-        // 调用插件
-        this.floatWinInstance.show({
-          id: "pet_view_" + Date.now(), // 加个随机ID防止缓存
-          url: absolutePath,
-          width: 200,
-          height: 200,
-          x: 200,
-          y: 300,
-          system: true,    // 必须为 true
-          touchable: true,
-          moveable: true,
-          debug: true
-        });
-
+    
+        // 2. 设置加载的 URL
+        // 文档 API: loadUrl(url)
+        this.floatWinInstance.loadUrl(absolutePath);
+    
+        // 3. 设置宽高 (必须先转为 Android 像素)
+        // 文档 API: setFixedWidthHeight(enable, width, height)
+        // 文档 API: convertHtmlPxToAndroidPx(px)
+        const w = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
+        const h = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
+        this.floatWinInstance.setFixedWidthHeight(true, w, h);
+    
+        // 4. 设置位置 (坐标 x=200, y=300)
+        // 文档 API: setLocation(x, y) 
+        // 注意：如果想用 Gravity (如居中) 可以改用 setGravity
+        const x = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
+        const y = this.floatWinInstance.convertHtmlPxToAndroidPx(300);
+        this.floatWinInstance.setLocation(x, y);
+    
+        // 5. 🔥【核心】设置显示模式：全局一直显示
+        // 文档 API: setShowPattern(pattern) -> 3 代表全局
+        this.floatWinInstance.setShowPattern(3);
+    
+        // 6. 开启拖拽 (对应你之前的 moveable)
+        // 文档 API: setDragEnable(enable)
+        this.floatWinInstance.setDragEnable(true);
+        
+        // 7. 最终创建并显示
+        // 文档 API: createAndShow()
+        this.floatWinInstance.createAndShow();
+    
         this.isPetShown = true;
-        this.addLog("✅ 寄生兽已召唤 (请切回桌面查看)");
+        this.addLog("✅ 寄生兽已召唤 (全局模式)");
       } catch (e) {
-        this.addLog("❌ 插件调用失败: " + e.message);
+        console.error(e);
+        this.addLog("❌ 插件调用异常: " + e.message);
       }
     },
 
