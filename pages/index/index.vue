@@ -160,8 +160,10 @@
 </template>
 
 <script>
-// 引入 UTS 插件
+// 1. 引入 UTS 悬浮窗插件
 import { FloatWindow } from "@/uni_modules/android-floatwindow"; 
+// 2. 引入 AI 工具 (⚠️请确保你已创建 utils/deepseek.js)
+import { chatWithAI } from "@/utils/deepseek.js"; 
 
 export default {
   data() {
@@ -175,7 +177,7 @@ export default {
       mood: 80, 
       exp: 45,
       petMessage: "等待指令...",
-      growthLogs: [], // 成长日记数据 (仅首页预览)
+      growthLogs: [], 
       
       // 系统数据
       logText: ">>> 系统初始化...\n",
@@ -184,25 +186,31 @@ export default {
       isMonitoring: false,
       monitorIntervalTime: 3000,
       
+      // 权限与插件对象
       hasFloatPermission: false,
       hasUsagePermission: false,
       floatWinInstance: null,
       monitorInterval: null,
-      lastPackage: "" 
+      lastPackage: "",
+      
+      // AI 请求冷却时间 (毫秒时间戳)
+      lastAiReq: 0 
     };
   },
   onShow() {
       this.checkPermissions();
-      if (!this.floatWinInstance) {
+      // 页面显示时，如果已有实例但不完整，重新初始化
+      if (!this.floatWinInstance && this.isPetShown) {
+          // 这种情况通常是页面被回收但悬浮窗还在，这里只做简单的对象重建
           this.floatWinInstance = new FloatWindow();
       }
       this.petMessage = this.isPetShown ? "我在看着你..." : "zzz...";
 
-      // 🔥 读取最近的日志显示在首页 (取前3条)
+      // 读取日志缓存
       const fullLogs = uni.getStorageSync('pet_growth_logs') || [];
       this.growthLogs = fullLogs.slice(0, 3);
       
-      // 🔥 读取心情值缓存 (防止重启后心情重置)
+      // 读取心情缓存
       const cachedMood = uni.getStorageSync('pet_mood_cache');
       if (cachedMood !== '' && cachedMood !== null) {
           this.mood = cachedMood;
@@ -213,7 +221,6 @@ export default {
         uni.showToast({ title: msg, icon: 'none' });
     },
     
-    // 打开应用选择器
     openSelector(mode) {
         uni.showLoading({ title: '准备中...', mask: true });
         setTimeout(() => {
@@ -225,38 +232,30 @@ export default {
         }, 100);
     },
 
-    // 打开历史记录页
     openHistory() {
         uni.navigateTo({ url: '/pages/log/log-history' });
     },
     
-    // 🔥 核心：记录成长日记并持久化
+    // 🔥 核心：记录成长日记
     addGrowthLog(msg, val) {
         const time = new Date().toLocaleTimeString('zh-CN', {hour12: false});
         const timestamp = Date.now();
         const newLog = { time, msg, val, timestamp };
 
-        // 1. 更新内存数组 (用于首页预览，只留前3条)
         this.growthLogs.unshift(newLog);
         if (this.growthLogs.length > 3) this.growthLogs.pop();
 
-        // 2. 更新本地存储 (读取 -> 插入 -> 保存)
         try {
             let history = uni.getStorageSync('pet_growth_logs') || [];
             history.unshift(newLog);
-            // 限制最大存储数量
-            if (history.length > 500) {
-                history = history.slice(0, 500);
-            }
+            if (history.length > 500) history = history.slice(0, 500);
             uni.setStorageSync('pet_growth_logs', history);
-            // 顺便保存心情
             uni.setStorageSync('pet_mood_cache', this.mood);
         } catch (e) {
             console.error("日志存储失败", e);
         }
     },
 
-    // 记录系统终端日志
     addLog(msg) {
       const time = new Date().toLocaleTimeString('zh-CN', {hour12: false});
       this.logText += `[${time}] ${msg}\n`;
@@ -270,9 +269,60 @@ export default {
     onIntervalChange(e) {
         this.monitorIntervalTime = e.detail.value;
         this.addLog(`配置更新: 扫描间隔 -> ${this.monitorIntervalTime}ms`);
+        // 重启监控以应用新频率
         if (this.isMonitoring) {
-            this.toggleMonitor();
-            setTimeout(() => { this.toggleMonitor(); }, 500);
+            clearInterval(this.monitorInterval);
+            this.monitorInterval = setInterval(() => {
+                this.checkCurrentApp();
+            }, this.monitorIntervalTime);
+        }
+    },
+
+    // --- AI 评论触发器 ---
+    async triggerPetComment(appName, type) {
+        // 1. 冷却检查 (60秒内不重复请求 AI，省钱且防刷屏)
+        const now = Date.now();
+        if (now - this.lastAiReq < 60000) {
+             // 冷却期使用本地兜底文案
+             const fallback = type === 'bad' ? "还在玩？！<br>😡" : "继续保持！<br>❤️";
+             const msgType = type === 'bad' ? 2 : 1; 
+             if(this.floatWinInstance) this.floatWinInstance.sendDataToJs(msgType, fallback);
+             return;
+        }
+        
+        // 更新上次请求时间
+        this.lastAiReq = now;
+        this.addLog("🤖 正在请求 DeepSeek 评价...");
+        
+        // 2. 构建提示词
+        let systemPrompt = "";
+        let userPrompt = "";
+        
+        if (type === 'bad') {
+            systemPrompt = "你是一个寄生在手机里的毒舌外星生物。用户正在浪费时间玩娱乐软件，请用嘲讽、刻薄、阴阳怪气的语气骂醒他。字数30字以内。不要只有标点符号。";
+            userPrompt = `我正在玩《${appName}》，我已经玩了很久了，快骂我。`;
+        } else {
+            systemPrompt = "你是一个傲娇的电子宠物。用户正在学习，请用勉为其难但其实在鼓励的语气表扬他。字数30字以内。";
+            userPrompt = `我正在使用学习软件《${appName}》。`;
+        }
+
+        try {
+            // 3. 调用 AI
+            const reply = await chatWithAI(userPrompt, systemPrompt);
+            this.addLog("👻 寄生兽说: " + reply);
+            
+            // 4. 发送给悬浮窗 (Type 2=愤怒红色, 1=普通绿色)
+            const msgType = type === 'bad' ? 2 : 1; 
+            
+            if (this.floatWinInstance) {
+                this.floatWinInstance.sendDataToJs(msgType, reply);
+            }
+        } catch (error) {
+            console.error("AI Error", error);
+            this.addLog("❌ AI连接失败，使用本地语音");
+            // 失败兜底
+            const fallback = type === 'bad' ? "网络太差了...<br>就像你的自律性！" : "网络断了...<br>但在学习是好事。";
+            if(this.floatWinInstance) this.floatWinInstance.sendDataToJs(type === 'bad' ? 2 : 1, fallback);
         }
     },
 
@@ -351,7 +401,7 @@ export default {
             this.floatWinInstance.setShowPattern(3); 
             this.floatWinInstance.setDragEnable(true);
     
-            // 监听 Web 消息
+            // 监听 Web 消息 (双向通信)
             this.floatWinInstance.onListenerWebData((type, msg) => {
                 console.log("Web消息:", type, msg);
                 
@@ -363,7 +413,7 @@ export default {
                      this.mood = Math.min(100, this.mood + 2);
                      this.addGrowthLog("与宠物互动", 2);
 
-                     // 3. 发送给悬浮窗 (显示气泡)
+                     // 3. 互动反馈 (无需调用 AI，直接本地回复)
                      setTimeout(() => {
                          this.floatWinInstance.sendDataToJs(1, "别戳我！<br>去背单词！");
                      }, 100);
@@ -404,7 +454,7 @@ export default {
       }
     },
 
-    // --- 核心监控逻辑 (含黑白名单) ---
+    // --- 监控核心逻辑 ---
     checkCurrentApp() {
       try {
         const context = plus.android.runtimeMainActivity();
@@ -436,6 +486,7 @@ export default {
             }
           }
 
+          // 排除桌面启动器
           if (currentPackage && 
               currentPackage.indexOf("launcher") === -1 && 
               currentPackage.indexOf("home") === -1) {
@@ -444,34 +495,37 @@ export default {
                 this.addLog("检测到应用切换: " + currentPackage);
                 this.lastPackage = currentPackage;
                 
-                // --- 判定逻辑 ---
+                // 获取用户配置的黑白名单
                 const whitelist = uni.getStorageSync('pet_whitelist') || [];
                 const blacklist = uni.getStorageSync('pet_blacklist') || [];
                 const appName = this.getAppName(currentPackage);
 
+                // --- 规则判定 ---
                 if (whitelist.includes(currentPackage)) {
-                    // 白名单
+                    // ✅ 白名单 (学习软件)
                     this.mood = Math.min(100, this.mood + 5); 
                     this.exp += 10;
                     this.addGrowthLog(`投喂成功 (${appName})`, 5);
                     this.addLog(`>>> 正在学习: ${appName} (经验+10)`);
-                    if(this.floatWinInstance) {
-                         this.floatWinInstance.sendDataToJs(1, "好耶！是精神食粮！<br>经验+10");
-                    }
+                    
+                    // 触发鼓励模式
+                    this.triggerPetComment(appName, 'good');
 
                 } else if (blacklist.includes(currentPackage)) {
-                    // 黑名单
+                    // ❌ 黑名单 (娱乐软件)
                     this.mood = Math.max(0, this.mood - 10);
                     this.addGrowthLog(`误食毒药 (${appName})`, -10);
                     this.addLog(`>>> 警告: 正在摸鱼 ${appName} (心情-10)`);
-                    if(this.floatWinInstance) {
-                         this.floatWinInstance.sendDataToJs(2, "你在干什么？！<br>快去背单词！(💢)");
-                    }
+                    
+                    // 🔥 触发毒舌模式 (AI介入)
+                    this.triggerPetComment(appName, 'bad');
 
                 } else {
-                    // 未知
+                    // ⚠️ 未知应用 (中立)
                     this.mood = Math.max(0, this.mood - 1);
                     this.addLog(`>>> 正在使用: ${appName}`);
+                    
+                    // 恢复正常表情
                     if(this.floatWinInstance) {
                          this.floatWinInstance.sendDataToJs(3, ""); 
                     }
@@ -627,7 +681,7 @@ $text-dim: #747d8c;
 .btn-yellow { background: $accent-yellow; color: #000; }
 .terminal-btn { background: #2f3542; border: 1px solid #57606f; margin-top: 20px; font-size: 12px; }
 
-/* 日志卡片 (优化版) */
+/* 日志卡片 */
 .log-card {
     background: #0f1526;
     border-radius: 8px;
