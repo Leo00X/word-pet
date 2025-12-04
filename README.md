@@ -2,7 +2,7 @@
 
 "It watches you. It judges you. It forces you to learn."
 
-一个基于 Android 原生能力的桌面 AI 伴侣。它不是单词书，它是住在你手机桌面上、在你摸鱼时“重拳出击”的毒舌监督者。
+一个基于 Android 原生能力的桌面 AI 伴侣。它不是单词书，它是住在你手机桌面上、在你摸鱼时“重拳出击”的毒舌监督者与陪伴。
 
 📖 项目背景与定位 (Concept)
 
@@ -183,6 +183,12 @@ word-pet/                          # 项目根目录
 [ ] 新增联网宠物（github）、本地宠物的选择
 [ ] 优化宠物情绪动画及情绪系统 (根据应用包名改变表情)
 [ ] 屏幕强制干扰功能（宠物变大）
+
+📄 License
+
+MIT License.
+
+Created by WordParasite Team with HBuilderX & uni-app.
 
 
 ---
