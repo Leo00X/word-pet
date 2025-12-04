@@ -1,12 +1,13 @@
 <template>
   <view class="main-screen">
     <view class="screen-content" :class="{ 'glitch-effect': isMonitoring }">
-      <image 
-        class="pet-avatar" 
+      <!-- 宠物头像 - 使用 emoji -->
+      <text 
+        class="pet-avatar-emoji" 
         :class="{ 'floating': isPetShown }"
-        src="/static/logo.png" 
-        mode="aspectFit"
-      ></image>
+      >
+        {{ petEmoji }}
+      </text>
       
       <view class="pixel-bubble" v-if="isPetShown">
         <text>{{ petMessage }}</text>
@@ -14,12 +15,44 @@
 
       <view class="stats-overlay">
         <view class="stat-row">
-          <text class="stat-label">心情</text>
-          <progress class="stat-bar" :percent="mood" activeColor="#ff4757" backgroundColor="#2f3542" stroke-width="6" />
+          <text class="stat-label">❤️ 心情</text>
+          <progress 
+            class="stat-bar" 
+            :percent="mood" 
+            :activeColor="moodColor" 
+            backgroundColor="#2f3542" 
+            stroke-width="6" 
+          />
         </view>
         <view class="stat-row">
-          <text class="stat-label">经验</text>
-          <progress class="stat-bar" :percent="exp" activeColor="#2ed573" backgroundColor="#2f3542" stroke-width="6" />
+          <text class="stat-label">⭐ 经验</text>
+          <progress 
+            class="stat-bar" 
+            :percent="expPercent" 
+            activeColor="#2ed573" 
+            backgroundColor="#2f3542" 
+            stroke-width="6" 
+          />
+        </view>
+        <view class="stat-row">
+          <text class="stat-label">🍖 饥饿</text>
+          <progress 
+            class="stat-bar" 
+            :percent="hunger" 
+            activeColor="#ffaa00" 
+            backgroundColor="#2f3542" 
+            stroke-width="6" 
+          />
+        </view>
+        <view class="stat-row">
+          <text class="stat-label">💕 亲密</text>
+          <progress 
+            class="stat-bar" 
+            :percent="bond" 
+            activeColor="#ff66cc" 
+            backgroundColor="#2f3542" 
+            stroke-width="6" 
+          />
         </view>
       </view>
     </view>
@@ -49,6 +82,33 @@ export default {
     exp: {
       type: Number,
       default: 0
+    },
+    hunger: {
+      type: Number,
+      default: 100
+    },
+    bond: {
+      type: Number,
+      default: 0
+    },
+    petEmoji: {
+      type: String,
+      default: '👻'
+    }
+  },
+  
+  computed: {
+    // 经验百分比 (0-100)
+    expPercent() {
+      return Math.min(100, this.exp);
+    },
+    
+    // 心情颜色
+    moodColor() {
+      if (this.mood > 80) return '#00ff88'; // 绿色 - 快乐
+      if (this.mood > 50) return '#ffaa00'; // 橙色 - 一般
+      if (this.mood > 20) return '#ff4757'; // 红色 - 郁闷
+      return '#ff3366'; // 深红 - 愤怒
     }
   }
 }
@@ -76,11 +136,11 @@ export default {
   background: radial-gradient(circle, #2f3640 0%, #000 90%);
 }
 
-.pet-avatar {
-  width: 100px;
-  height: 100px;
+.pet-avatar-emoji {
+  font-size: 80px;
   z-index: 10;
   transition: all 0.5s ease;
+  display: block;
 }
 
 .floating { 

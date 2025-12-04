@@ -63,8 +63,52 @@ export function useAI() {
         }
     };
 
+    /**
+     * 聊天对话功能（支持上下文）
+     * @param {string} userMessage - 用户消息
+     * @param {Object} context - 上下文数据 { level, mood, studyTime, idleTime, ... }
+     * @param {Array} history - 历史消息 [{role: 'user'|'assistant', content: '...'}]
+     * @returns {Promise<string>} AI 回复
+     */
+    const chatWithPet = async (userMessage, context = {}, history = []) => {
+        // 构建系统 Prompt（包含宠物状态）
+        const systemPrompt = `你是一只寄生在手机里的傲娇电子宠物，名叫 WordParasite。
+
+当前状态：
+- 等级：Lv.${context.level || 1}
+- 心情值：${context.mood || 50}/100
+- 用户今日学习时长：${context.todayStudyTime || 0}分钟
+- 用户今日摸鱼时长：${context.todayIdleTime || 0}分钟
+
+性格特点：
+- 傲娇但关心用户
+- 对摸鱼行为毒舌吐槽，对学习行为勉为其难地表扬
+- 用简洁、幽默的语气对话，字数控制在50字以内
+- 可以使用 emoji 表达情绪
+
+根据用户的学习数据和当前心情，用符合性格的语气与用户对话。`;
+
+        try {
+            // 如果有上下文历史，传递给 AI（目前 chatWithAI 不支持，这里预留接口）
+            // 未来可以切换到支持上下文的 AI API
+            const reply = await chatWithAI(userMessage, systemPrompt);
+            return reply;
+        } catch (error) {
+            console.error('Chat AI Error:', error);
+            // 兜底回复
+            const fallbacks = [
+                '我刚走神了...😅',
+                '网络好像有点卡...',
+                '让我想想...(¯﹃¯)',
+                '抱歉，我需要缓一下 💭'
+            ];
+            return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        }
+    };
+
     return {
         lastAiReq,
-        triggerPetComment
+        triggerPetComment,
+        chatWithPet
     };
 }

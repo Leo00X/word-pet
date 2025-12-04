@@ -1,15 +1,21 @@
 <template>
   <view class="game-container">
     <!-- 状态栏组件 -->
-    <StatusBar :petLevel="petLevel" :coins="coins" />
+    <StatusBar 
+      :petLevel="growth ? growth.petLevel.value : 1" 
+      :coins="growth ? growth.coins.value : 0" 
+    />
 
     <!-- 宠物显示屏组件 -->
     <PetScreen 
       :isMonitoring="isMonitoring"
       :isPetShown="isPetShown"
       :petMessage="petMessage"
-      :mood="mood"
-      :exp="exp"
+      :mood="growth ? growth.mood.value : 80"
+      :exp="growth ? growth.petXP.value : 0"
+      :hunger="growth ? growth.hunger.value : 100"
+      :bond="growth ? growth.bond.value : 0"
+      :petEmoji="(growth && growth.petDisplay && growth.petDisplay.value) ? growth.petDisplay.value.emoji : '👻'"
     />
 
     <!-- 控制器区域 -->
@@ -38,6 +44,19 @@
         @interval-change="handleIntervalChange"
         @open-terminal="showTerminal = true"
       />
+      
+      <!-- 聊天面板 -->
+      <ChatPanel
+        v-if="currentTab === 'chat' && chatMethods"
+        :messages="chatMessages"
+        :userInput="chatUserInput"
+        :isSending="chatIsSending"
+        :quickReplies="chatQuickReplies"
+        :petEmoji="(growth && growth.petDisplay && growth.petDisplay.value) ? growth.petDisplay.value.emoji : '👻'"
+        @update:userInput="handleUserInputUpdate"
+        @send-message="handleSendMessage"
+        @quick-reply="handleQuickReply"
+      />
     </view>
 
     <!-- 终端弹窗组件 -->
@@ -60,10 +79,14 @@ import TabSwitch from './components/TabSwitch.vue';
 import StatusPanel from './components/StatusPanel.vue';
 import ConfigPanel from './components/ConfigPanel.vue';
 import TerminalModal from './components/TerminalModal.vue';
+import ChatPanel from './components/ChatPanel.vue';
 
 // 导入原生插件和工具
 import { FloatWindow } from "@/uni_modules/android-floatwindow";
 import { useAI } from './composables/useAI.js';
+import { useGrowth } from './composables/useGrowth.js';
+import { useChat } from './composables/useChat.js';
+import { debugLog, logUserAction, logAI, logMonitor, logError, logSuccess } from '@/utils/debugLog.js';
 
 export default {
   components: {
@@ -72,7 +95,8 @@ export default {
     TabSwitch,
     StatusPanel,
     ConfigPanel,
-    TerminalModal
+    TerminalModal,
+    ChatPanel
   },
 
   data() {
@@ -82,11 +106,7 @@ export default {
       logText: ">>> 系统初始化...\n",
       scrollTop: 9999,
       
-      // 游戏数据（直接作为 data 属性）
-      petLevel: 1,
-      coins: 128,
-      mood: 80,
-      exp: 45,
+      // 游戏数据（将由 composables 管理）
       petMessage: "等待指令...",
       growthLogs: [],
       
@@ -107,17 +127,46 @@ export default {
       // AI 冷却
       lastAiReq: 0,
       
-      // Composable methods (只存储方法，不存储状态)
-      aiMethods: null
+      // Composables 实例
+      growth: null,
+      chat: null,
+      ai: null
     };
   },
 
   created() {
-    // 只使用 AI composable 的方法
-    this.aiMethods = useAI();
+    // 初始化 Composables
+    this.growth = useGrowth();
+    
+    // chat composable 需要特殊处理以保持 ref 的响应性
+    const chatComposable = useChat();
+    // 直接将 ref 存储为属性，Vue 3 会自动处理
+    this.chatMessages = chatComposable.messages;
+    this.chatUserInput = chatComposable.userInput;
+    this.chatIsSending = chatComposable.isSending;
+    this.chatQuickReplies = chatComposable.quickReplies;
+    this.chatMethods = {
+      loadMessages: chatComposable.loadMessages,
+      sendMessage: chatComposable.sendMessage,
+      sendQuickReply: chatComposable.sendQuickReply
+    };
+    
+    this.ai = useAI();
+    
+    console.log('[index.vue created] chatUserInput ref:', this.chatUserInput);
+    
+    // 加载成长系统数据
+    if (this.growth) {
+      this.growth.loadData();
+    }
+    // 加载聊天历史
+    if (this.chatMethods) {
+      this.chatMethods.loadMessages();
+    }
   },
 
   onShow() {
+    logUserAction('页面显示', { isPetShown: this.isPetShown, isMonitoring: this.isMonitoring });
     this.checkPermissions();
     
     // 页面恢复时重建悬浮窗实例
@@ -175,12 +224,20 @@ export default {
       }
       
       this.lastAiReq = now;
-      this.aiMethods.triggerPetComment(appName, type, 
-        (msgType, msg) => {
-          if (this.floatWinInstance) this.floatWinInstance.sendDataToJs(msgType, msg);
-        }, 
-        this.addLog
-      );
+      
+      // 确保传递 addLog 方法
+      if (this.ai && this.ai.triggerPetComment) {
+        await this.ai.triggerPetComment(
+          appName, 
+          type, 
+          (msgType, msg) => {
+            if (this.floatWinInstance) this.floatWinInstance.sendDataToJs(msgType, msg);
+          }, 
+          (logMsg) => {
+            this.addLog(logMsg);
+          }
+        );
+      }
     },
 
     // 权限检查
@@ -223,6 +280,7 @@ export default {
 
     // 悬浮窗控制
     handleTogglePet() {
+      logUserAction('切换宠物显示', { 当前状态: this.isPetShown ? '显示中' : '隐藏' });
       this.checkPermissions();
       if (!this.hasFloatPermission) {
         this.addLog("错误: 缺少悬浮窗权限");
@@ -289,6 +347,7 @@ export default {
 
     // 监控控制
     handleToggleMonitor() {
+      logUserAction('切换监控状态', { 当前状态: this.isMonitoring ? '监控中' : '停止' });
       this.checkPermissions();
       if (!this.hasUsagePermission) {
         this.addLog("错误: 缺少监控权限");
@@ -415,6 +474,73 @@ export default {
 
     openHistory() {
       uni.navigateTo({ url: '/pages/log/log-history' });
+    },
+    
+    // ========== 聊天功能相关方法 ==========
+    
+    /**
+     * 处理用户输入更新
+     */
+    handleUserInputUpdate(value) {
+      console.log('[index.vue] handleUserInputUpdate', value);
+      if (this.chatUserInput) {
+        this.chatUserInput.value = value;
+        console.log('[index.vue] 更新后:', this.chatUserInput.value);
+      }
+    },
+    
+    /**
+     * 处理发送消息
+     */
+    async handleSendMessage(content) {
+      logUserAction('发送消息', { 内容: content.substring(0, 30) });
+      if (!this.chatMethods || !this.ai) return;
+      
+      const context = {
+        level: this.growth.petLevel.value,
+        mood: this.growth.mood.value,
+        todayStudyTime: this.growth.todayStudyTime.value,
+        todayIdleTime: this.growth.todayIdleTime.value
+      };
+      
+      await this.chatMethods.sendMessage(
+        content,
+        async (userMsg, ctx) => {
+          try {
+            const reply = await this.ai.chatWithPet(userMsg, ctx);
+            return reply;
+          } catch (e) {
+            console.error('AI 回复失败:', e);
+            return '抱歉，我走神了...😅';
+          }
+        },
+        context
+      );
+    },
+    
+    async handleQuickReply(replyId) {
+      logUserAction('点击快捷回复', { replyId });
+      if (!this.chatMethods || !this.growth) return;
+      
+      const context = {
+        level: this.growth.petLevel.value,
+        mood: this.growth.mood.value,
+        todayStudyTime: this.growth.todayStudyTime.value,
+        todayIdleTime: this.growth.todayIdleTime.value
+      };
+      
+      this.chatMethods.sendQuickReply(
+        replyId,
+        async (userMsg, ctx) => {
+          try {
+            const reply = await this.ai.chatWithPet(userMsg, ctx);
+            return reply;
+          } catch (e) {
+            return '嗯...让我想想 💭';
+          }
+        },
+        context
+      );
     }
   }
 };

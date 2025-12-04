@@ -255,3 +255,62 @@ pages/index/
 - 🎯 每个组件职责单一，易于测试和调试
 
 ```
+---
+### 增加一个聊天对话窗口功能和宠物成长系统
+
+聊天系统
+💬 App内独立聊天Tab
+🤖 AI对话（携带宠物状态上下文）
+💾 消息历史持久化（最近100条）
+⚡ 4个快捷回复按钮
+成长系统
+📊 6维数值模型（等级/经验/心情/金币/饥饿/亲密）
+🎭 4种宠物类型（幽灵🐕🦜，使用emoji显示）
+🌟 6种形态状态（蛋→幼年→成年→特殊形态）
+🎮 完整奖惩机制（学习奖励/摸鱼惩罚/自然衰减）
+📝 新增/修改文件
+新增6个文件：
+
+useGrowth.js, useChat.js
+growthFormula.js, petForms.js
+ChatPanel.vue, ChatBubble.vue
+修改4个文件：
+
+index.vue, PetScreen.vue, TabSwitch.vue, useAI.js
+📖 如何使用
+查看聊天：切换到"💬 对话"Tab，与宠物AI对话
+查看数值：主屏幕显示4个进度条（心情/经验/饥饿/亲密）
+宠物emoji：会根据等级和心情自动切换形态
+
+---
+### 可用的日志函数
+如果您想在其他地方添加日志，可以导入并使用：
+
+```javascript
+import { debugLog, logUserAction, logAI, logMonitor, logError, logSuccess } from '@/utils/debugLog.js';
+
+// 记录用户操作
+logUserAction('操作名称', { 详细信息 });
+
+// AI 相关日志
+logAI('AI 请求成功', { 回复内容 });
+
+// 监控相关
+logMonitor('检测到应用', { appName: '微信' });
+
+// 错误日志
+logError('组件名', error);
+
+// 成功提示
+logSuccess('操作成功！');
+```
+
+### 关闭日志
+如果不需要调试日志，可以编辑 
+utils/debugLog.js
+文件：
+
+```javascript
+const DEBUG_ENABLED = false; // 设置为 false 关闭所有日志
+```
+

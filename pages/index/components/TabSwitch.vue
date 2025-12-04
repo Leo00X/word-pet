@@ -14,6 +14,13 @@
     >
       系统设置
     </view>
+    <view 
+      class="tab-btn" 
+      :class="{ active: currentTab === 'chat' }"
+      @click="handleTabChange('chat')"
+    >
+      💬 对话
+    </view>
   </view>
 </template>
 

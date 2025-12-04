@@ -2,7 +2,8 @@
 
 // 配置项：请将你的 API Key 填入这里
 // ⚠️ 注意：实际项目中，请不要将 Key 直接提交到 Git，建议使用 manifest 环境变量或从后端获取
-const API_KEY = 'sk-b6a294d4157fdca97c842ccb0a61dec55c091b9d3dc50056631cb7665cb07b98'; 
+//const API_KEY = 'sk-b6a294d4157fdca97c842ccb0a61dec55c091b9d3dc50056631cb7665cb07b98';
+const API_KEY = 'sk-6845e5b983dc89387ef4ab8235361fe5a51749d14122342342a0d2898af2b9f4';
 const BASE_URL = 'https://api.qnaigc.com/v1/chat/completions';
 const MODEL_ID = 'deepseek/deepseek-v3.2-251201'; // 截图中的 Model ID
 
@@ -36,12 +37,13 @@ export const chatWithAI = (userMessage, systemPrompt = "你是一个毒舌的电
 					resolve(res.data.choices[0].message.content);
 				} else {
 					console.error('API Error:', res);
-					reject(res.data || '请求失败');
+					// 返回完整的错误信息
+					reject(res.data || { error: { message: '请求失败' } });
 				}
 			},
 			fail: (err) => {
 				console.error('Network Error:', err);
-				reject(err);
+				reject({ error: { message: err.errMsg || '网络错误' } });
 			}
 		});
 	});
