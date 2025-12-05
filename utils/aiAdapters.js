@@ -73,24 +73,45 @@ export class GeminiAdapter {
 
     chat(userMessage, systemPrompt = "你是一个毒舌的电子宠物，说话简短犀利。", history = []) {
         return new Promise((resolve, reject) => {
-            // Gemini 的 contents 格式（需要转换历史）
             const contents = [];
             const recentHistory = history.slice(-10); // 保留最近 10 轮
 
-            // 如果有历史，构建完整对话链
             if (recentHistory.length > 0) {
-                // 第一条包含 system prompt
-                contents.push({
-                    role: "user",
-                    parts: [{ text: systemPrompt + "\n\n" + userMessage }]
-                });
+                // 第一条消息包含 system prompt
+                const firstMsg = recentHistory[0];
+                if (firstMsg && firstMsg.role === 'user') {
+                    contents.push({
+                        role: "user",
+                        parts: [{ text: systemPrompt + "\n\n" + firstMsg.content }]
+                    });
+                }
+
+                // 添加后续历史消息
+                for (let i = 1; i < recentHistory.length; i++) {
+                    const msg = recentHistory[i];
+                    contents.push({
+                        role: msg.role === 'user' ? 'user' : 'model',
+                        parts: [{ text: msg.content }]
+                    });
+                }
+
+                // 添加当前消息 (如果最后一条历史不是当前消息)
+                const lastMsg = recentHistory[recentHistory.length - 1];
+                if (!lastMsg || lastMsg.content !== userMessage) {
+                    contents.push({
+                        role: "user",
+                        parts: [{ text: userMessage }]
+                    });
+                }
             } else {
-                // 没有历史，直接合并 system + user
+                // 没有历史，直接包含 system prompt
                 contents.push({
                     role: "user",
                     parts: [{ text: `${systemPrompt}\n\n${userMessage}` }]
                 });
             }
+
+            console.log('[Gemini] 发送 contents:', JSON.stringify(contents, null, 2));
 
             uni.request({
                 url: this.baseUrl,

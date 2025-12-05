@@ -124,8 +124,12 @@ word-pet/                          # 项目根目录
 ├── unpackage/                     # 编译输出目录
 ├── utils/                         # [全局] 通用工具库
 │   ├── appTool.js                 # 安卓应用扫描/工具集
-│   ├── deepseek.js                # [新] DeepSeek API 接口封装
-│   └── monitor.js                 # 监控辅助逻辑 (旧版/通用)
+│   ├── aiService.js               # [新] AI 服务统一入口
+│   ├── aiAdapters.js              # [新] AI 适配器（DeepSeek/Gemini/Custom）
+│   ├── encryptStorage.js          # [新] 本地存储工具
+│   ├── debugLog.js                # [新] 调试日志工具
+│   ├── deepseek.js                # [已废弃] DeepSeek API 旧实现
+│   └── monitor.js                 # 监控辅助逻辑
 ├── App.vue                        # 应用生命周期管理
 ├── index.html                     # H5 宿主页面模板
 ├── main.js                        # Vue 初始化入口
@@ -166,7 +170,9 @@ word-pet/                          # 项目根目录
 [x] 界面重构 (赛博朋克像素风 UI)
 [x] 黑白名单系统 (应用扫描 + 本地存储)
 [x] 成长日记 (数据持久化 + 历史回顾)
-[x] AI 接入 (Deepseek-V3.2 API)
+[x] AI 多模型系统 (DeepSeek + Gemini 2.5 Flash/Pro + 自定义模型)
+[x] 多轮对话与上下文记忆 (跨模型切换保留历史)
+[x] 聊天历史分页加载 (默认显示3条，按需加载)
 [ ] 交互与视觉升级 (Chat & UI) NEW
     [ ] 悬浮窗双层渲染架构 (Avatar常驻层 + ChatBox交互层) —— 实现气泡对话与输入
     [ ] Uni-app 与 WebView 双向通信桥接 (Event Bridge)
