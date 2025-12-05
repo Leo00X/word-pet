@@ -21,7 +21,7 @@ const ADAPTER_MAP = {
 function getCurrentAIConfig() {
     const config = getSecureStorage('ai_config');
 
-    // 如果没有配置，返回默认 DeepSeek 配置（兼容旧版本）
+    // 如果没有配置，返回空配置（需要用户自行配置 API Key）
     if (!config) {
         return {
             currentModelId: 'deepseek-default',
@@ -29,7 +29,7 @@ function getCurrentAIConfig() {
                 id: 'deepseek-default',
                 name: 'DeepSeek V3.2',
                 type: 'deepseek',
-                apiKey: 'sk-450792972278576f8ed953548a6365cbf26d56e5487c66c46116b326f72b98e5', // 原有的 Key
+                apiKey: '', // 需要用户配置
                 baseUrl: 'https://api.qnaigc.com/v1/chat/completions',
                 modelId: 'deepseek/deepseek-v3.2-251201'
             }

@@ -22,7 +22,7 @@ trigger: always_on
 ### S - Structure & Configuration (架构与配置优先)
 
 **首页净化协议 (Index Purification Protocol)**: 
-* **角色定义**: `index.vue` (及其他页面级组件) 仅作为 **"容器 (Container)"**。它只负责组装组件和连接数据，**严禁**包含超过 50 行的内联业务逻辑或复杂的 UI 渲染代码。
+* **角色定义**: `index.vue` (及其他页面级组件) 仅作为 **"容器 (Container)"**。它只负责组装组件和连接数据，**严禁**包含超过 80 行的内联业务逻辑或复杂的 UI 渲染代码。
 * **强制组件化**: 凡是能视觉独立的功能块（如“宠物显示”、“聊天面板”、“控制按钮”），**必须**封装为独立的 `.vue` 组件存入 `components/` 目录。
 * **逻辑抽离**: 所有的状态管理（State）、定时器（Timer）、数据计算（Calculation）**必须** 移入 Pinia Store 或 Composables (`composables/useXxx.js`)。**绝对禁止**在 `index.vue` 中直接使用 `setInterval` 或编写复杂函数，仅允许调用 Composable 暴露的方法。
 
@@ -58,6 +58,19 @@ trigger: always_on
 ### K - Knowledge Verification (排错与验证)
 * **API 幻觉检测**: 在生成代码前，自检是否使用了标准 Web API（如 `localStorage`）。如果是，必须替换为 uni-app 标准 API（如 `uni.setStorageSync`）。
 * **CSS 兼容性**: 检查是否使用了 App 端不支持的 CSS 属性（如 `z-index` 在 nvue 中需配合 `position` 使用，或复杂的 CSS3 动画）。
+
+### D - Documentation Strategy (文档策略)
+
+* **README 保护协议 (README Protection Protocol)**:
+    * **禁止重写**: 严禁完全重写或大幅替换根目录的 `README.md`。这是项目的“门面”，通常包含人工精修的营销文案和演示图。
+    * **增量更新**: 仅允许在 `README.md` 的特定区域（如“文档索引”或“最新更新”或“功能描述”）进行**增量添加**。
+
+* **指南分离原则 (Guide Separation)**:
+    * **独立文件**: 所有详细的技术文档、架构说明、功能清单或 AI 协作指南，**必须**创建为独立的 Markdown 文件（例如：`AI_GUIDE.md`, `DEVELOPMENT.md`, `ARCHITECTURE.md`）。
+    * **引用机制**: 新建文档后，仅需在 `README.md` 中添加一行引用链接。
+        * *示例*: `> 📖 详细技术架构请参阅: [AI 开发指南](./AI_GUIDE.md)`
+
+* **变更日志 (Changelog)**: 重大的功能更新应记录在 `CHANGELOG.md` 或独立更新日志中，而不是堆砌在 README 首页。
 
 ## 3. Artifacts 生成规范 (Deliverables)
 为了适应 Antigravity 的 "Artifact-First" 工作流，对于复杂任务，你必须先生成以下 Markdown 格式的工件：

@@ -200,144 +200,195 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$bg-color: #1a1a2e;
-$card-bg: #16213e;
-$accent-color: #00d9ff;
+// 配色变量
+$bg-dark: #0a0f1a;
+$bg-card: #111827;
+$bg-elevated: #1a2744;
+$accent-cyan: #00d9ff;
+$accent-purple: #7b68ee;
+$accent-orange: #ff9500;
+$text-light: #f0f0f0;
+$text-dim: #6b7280;
 
 .chat-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: $card-bg;
-  border-radius: 15px;
+  background: linear-gradient(180deg, $bg-card 0%, $bg-dark 100%);
+  border-radius: 20px;
   overflow: hidden;
+  border: 1px solid rgba($accent-cyan, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .messages-scroll {
   flex: 1;
-  padding: 12px;
+  padding: 16px;
   overflow-y: auto;
+  
+  // 自定义滚动条
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba($accent-cyan, 0.3);
+    border-radius: 2px;
+  }
 }
 
 .messages-container {
   min-height: 100%;
+  padding-bottom: 10px;
 }
 
+// 空状态
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: #666;
+  padding: 50px 20px;
   
   .empty-icon {
-    font-size: 60px;
-    margin-bottom: 15px;
-    opacity: 0.5;
+    font-size: 50px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+    animation: float 3s ease-in-out infinite;
   }
   
   .empty-text {
-    font-size: 16px;
+    font-size: 15px;
+    color: $text-light;
     margin-bottom: 8px;
   }
   
   .empty-hint {
     font-size: 12px;
-    opacity: 0.7;
+    color: $text-dim;
   }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+// 加载更多按钮
 .load-more-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px 20px;
-  margin: 10px auto;
-  background: rgba(0, 217, 255, 0.1);
-  border: 1px solid rgba(0, 217, 255, 0.3);
-  border-radius: 20px;
-  color: $accent-color;
+  margin: 12px auto;
+  background: linear-gradient(135deg, rgba($accent-cyan, 0.1), rgba($accent-purple, 0.1));
+  border: 1px solid rgba($accent-cyan, 0.25);
+  border-radius: 25px;
+  color: $accent-cyan;
   font-size: 12px;
-  max-width: 200px;
+  max-width: 180px;
+  transition: all 0.3s ease;
   
   .load-more-icon {
     margin-right: 8px;
-    font-size: 14px;
+    font-size: 12px;
   }
   
   &:active {
-    background: rgba(0, 217, 255, 0.2);
+    transform: scale(0.96);
+    background: rgba($accent-cyan, 0.2);
   }
 }
 
+// 快捷回复区域
 .quick-replies {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 10px 12px;
-  border-top: 1px solid rgba(0, 217, 255, 0.2);
-  background: rgba(0, 0, 0, 0.2);
+  padding: 12px 14px;
+  border-top: 1px solid rgba($accent-cyan, 0.1);
+  background: linear-gradient(180deg, rgba($bg-elevated, 0.5), rgba($bg-dark, 0.8));
 }
 
 .quick-reply-btn {
   display: flex;
   align-items: center;
-  padding: 6px 12px;
-  background: rgba(0, 217, 255, 0.1);
-  border: 1px solid rgba(0, 217, 255, 0.3);
-  border-radius: 15px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba($accent-cyan, 0.08), rgba($accent-purple, 0.08));
+  border: 1px solid rgba($accent-cyan, 0.2);
+  border-radius: 18px;
   font-size: 12px;
-  color: $accent-color;
+  color: $accent-cyan;
+  transition: all 0.25s ease;
   
   .reply-icon {
-    margin-right: 5px;
+    margin-right: 6px;
+    font-size: 14px;
   }
   
   &:active {
-    background: rgba(0, 217, 255, 0.2);
+    transform: scale(0.95);
+    background: rgba($accent-cyan, 0.15);
+    border-color: rgba($accent-cyan, 0.4);
   }
 }
 
+// 输入区域
 .input-area {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  border-top: 1px solid rgba(0, 217, 255, 0.2);
-  background: rgba(0, 0, 0, 0.3);
+  padding: 12px 14px;
+  border-top: 1px solid rgba($accent-cyan, 0.1);
+  background: linear-gradient(180deg, rgba($bg-dark, 0.9), $bg-dark);
 }
 
 .message-input {
   flex: 1;
-  padding: 10px 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 217, 255, 0.3);
-  border-radius: 20px;
-  color: #f1f2f6;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba($accent-cyan, 0.2);
+  border-radius: 24px;
+  color: $text-light;
   font-size: 14px;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    border-color: rgba($accent-cyan, 0.5);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 3px rgba($accent-cyan, 0.1);
+  }
+  
+  &::placeholder {
+    color: $text-dim;
+  }
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   margin-left: 10px;
-  background: rgba(0, 217, 255, 0.2);
-  border: 1px solid rgba(0, 217, 255, 0.3);
+  background: linear-gradient(135deg, rgba($accent-cyan, 0.2), rgba($accent-purple, 0.2));
+  border: 1px solid rgba($accent-cyan, 0.3);
   border-radius: 50%;
-  color: #666;
-  font-size: 20px;
+  color: $text-dim;
+  font-size: 18px;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
   
   &.send-btn-active {
-    background: rgba(0, 217, 255, 0.3);
-    color: $accent-color;
-  }
-  
-  &:active {
-    background: rgba(0, 217, 255, 0.5);
+    background: linear-gradient(135deg, $accent-cyan, $accent-purple);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 15px rgba($accent-cyan, 0.4);
+    
+    &:active {
+      transform: scale(0.92);
+    }
   }
 }
 </style>

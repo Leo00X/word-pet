@@ -138,9 +138,11 @@ export default {
 
 .pet-avatar-emoji {
   font-size: 80px;
+  line-height: 1;
   z-index: 10;
   transition: all 0.5s ease;
   display: block;
+  text-align: center;
 }
 
 .floating { 

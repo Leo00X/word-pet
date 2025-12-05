@@ -8,13 +8,13 @@
 
     <!-- 宠物显示屏组件 -->
     <PetScreen 
-      :isMonitoring="isMonitoring"
-      :isPetShown="isPetShown"
-      :petMessage="petMessage"
-      :mood="growth ? growth.mood.value : 80"
-      :exp="growth ? growth.petXP.value : 0"
-      :hunger="growth ? growth.hunger.value : 100"
-      :bond="growth ? growth.bond.value : 0"
+      :isMonitoring="monitor.isMonitoring.value"
+      :isPetShown="floatWindow.isPetShown.value"
+      :petMessage="floatWindow.petMessage.value"
+      :mood="growth.mood.value"
+      :exp="growth.petXP.value"
+      :hunger="growth.hunger.value"
+      :bond="growth.bond.value"
       :petEmoji="(growth && growth.petDisplay && growth.petDisplay.value) ? growth.petDisplay.value.emoji : '👻'"
     />
 
@@ -26,11 +26,11 @@
       <!-- 状态面板 -->
       <StatusPanel 
         v-if="currentTab === 'status'"
-        :hasFloatPermission="hasFloatPermission"
-        :hasUsagePermission="hasUsagePermission"
-        :isPetShown="isPetShown"
-        :isMonitoring="isMonitoring"
-        :growthLogs="growthLogs"
+        :hasFloatPermission="permissions.hasFloatPermission.value"
+        :hasUsagePermission="permissions.hasUsagePermission.value"
+        :isPetShown="floatWindow.isPetShown.value"
+        :isMonitoring="monitor.isMonitoring.value"
+        :growthLogs="growthLog.growthLogs.value"
         @toggle-pet="handleTogglePet"
         @toggle-monitor="handleToggleMonitor"
         @open-history="openHistory"
@@ -39,19 +39,19 @@
       <!-- 配置面板 -->
       <ConfigPanel 
         v-if="currentTab === 'config'"
-        :monitorIntervalTime="monitorIntervalTime"
+        :monitorIntervalTime="monitor.monitorIntervalTime.value"
         @open-selector="openSelector"
         @interval-change="handleIntervalChange"
-        @open-terminal="showTerminal = true"
+        @open-terminal="terminal.showTerminal.value = true"
       />
       
       <!-- 聊天面板 -->
       <ChatPanel
-        v-if="currentTab === 'chat' && chatMethods"
-        :messages="chatMessages"
-        :userInput="chatUserInput"
-        :isSending="chatIsSending"
-        :quickReplies="chatQuickReplies"
+        v-if="currentTab === 'chat'"
+        :messages="chat.messages"
+        :userInput="chat.userInput"
+        :isSending="chat.isSending"
+        :quickReplies="chat.quickReplies"
         :petEmoji="(growth && growth.petDisplay && growth.petDisplay.value) ? growth.petDisplay.value.emoji : '👻'"
         @update:userInput="handleUserInputUpdate"
         @send-message="handleSendMessage"
@@ -61,18 +61,25 @@
 
     <!-- 终端弹窗组件 -->
     <TerminalModal 
-      :showTerminal="showTerminal"
-      :isMonitoring="isMonitoring"
-      :logText="logText"
-      :scrollTop="scrollTop"
-      @close="showTerminal = false"
-      @clear-log="logText = ''"
+      :showTerminal="terminal.showTerminal.value"
+      :isMonitoring="monitor.isMonitoring.value"
+      :logText="terminal.logText.value"
+      :scrollTop="terminal.scrollTop.value"
+      @close="terminal.showTerminal.value = false"
+      @clear-log="terminal.clearLog()"
     />
   </view>
 </template>
 
-<script>
-// 导入组件
+<script setup>
+/**
+ * 主页面 - 电子宠物游戏容器
+ * 职责:仅作为容器组装组件,所有业务逻辑由 composables 管理
+ */
+import { onShow } from "@dcloudio/uni-app";
+import { logUserAction } from '@/utils/debugLog.js';
+
+// 导入组件(使用 easycom 自动导入,此处为显式声明)
 import StatusBar from './components/StatusBar.vue';
 import PetScreen from './components/PetScreen.vue';
 import TabSwitch from './components/TabSwitch.vue';
@@ -81,483 +88,219 @@ import ConfigPanel from './components/ConfigPanel.vue';
 import TerminalModal from './components/TerminalModal.vue';
 import ChatPanel from './components/ChatPanel.vue';
 
-// 导入原生插件和工具
-import { FloatWindow } from "@/uni_modules/android-floatwindow";
-import { useAI } from './composables/useAI.js';
+// 导入 Composables
 import { useGrowth } from './composables/useGrowth.js';
+import { useGrowthLog } from './composables/useGrowthLog.js';
+import { useAI } from './composables/useAI.js';
 import { useChat } from './composables/useChat.js';
-import { debugLog, logUserAction, logAI, logMonitor, logError, logSuccess } from '@/utils/debugLog.js';
+import { useFloatWindow } from './composables/useFloatWindow.js';
+import { useMonitor } from './composables/useMonitor.js';
+import { usePermissions } from './composables/usePermissions.js';
+import { useTerminal } from './composables/useTerminal.js';
+import { ref } from 'vue';
 
-export default {
-  components: {
-    StatusBar,
-    PetScreen,
-    TabSwitch,
-    StatusPanel,
-    ConfigPanel,
-    TerminalModal,
-    ChatPanel
-  },
+// ========== 1. 初始化 Composables ==========
 
-  data() {
-    return {
-      currentTab: 'status',
-      showTerminal: false,
-      logText: ">>> 系统初始化...\n",
-      scrollTop: 9999,
-      
-      // 游戏数据（将由 composables 管理）
-      petMessage: "等待指令...",
-      growthLogs: [],
-      
-      // 系统状态
-      isPetShown: false,
-      isMonitoring: false,
-      monitorIntervalTime: 3000,
-      
-      // 权限状态
-      hasFloatPermission: false,
-      hasUsagePermission: false,
-      
-      // 原生插件实例
-      floatWinInstance: null,
-      monitorInterval: null,
-      lastPackage: "",
-      
-      // AI 冷却
-      lastAiReq: 0,
-      
-      // Composables 实例
-      growth: null,
-      chat: null,
-      ai: null
-    };
-  },
+// 1.1 成长系统
+const growth = useGrowth();
 
-  created() {
-    // 初始化 Composables
-    this.growth = useGrowth();
+// 1.2 成长日志系统
+const growthLog = useGrowthLog();
+
+// 1.3 AI系统
+const ai = useAI();
+
+// 1.4 聊天系统
+const chat = useChat();
+
+// 1.5 终端日志系统
+const terminal = useTerminal();
+
+// 1.6 权限系统
+const permissions = usePermissions();
+
+// 1.7 悬浮窗系统
+const floatWindow = useFloatWindow({
+    onPermissionDenied: (type) => {
+        permissions.requestPermission(type);
+    },
+    onPetInteraction: () => {
+        // 宠物互动逻辑 (interact方法会增加心情+2, 亲密度+1)
+        growth.interact();
+        // 记录成长日志 - val设为0避免末尾显示重复数字
+        growthLog.addGrowthLog("互动 (心情+2, 亲密+1)", 0);
+    },
+    addLog: terminal.addLog
+});
+
+// 1.8 监控系统(集成成长和AI系统)
+const monitor = useMonitor({
+    useGrowthIntegration: growth,
+    useGrowthLogIntegration: growthLog,  // 添加日志集成
+    useAIIntegration: ai,
+    sendToFloat: floatWindow.sendMessageToFloat,
+    onPermissionDenied: (type) => {
+        permissions.requestPermission(type);
+    },
+    addLog: terminal.addLog
+});
+
+// ========== 2. 页面状态 ==========
+
+// 当前选中的 Tab
+const currentTab = ref('status');
+
+// ========== 3. 生命周期 ==========
+
+// 页面显示时
+onShow(() => {
+    logUserAction('页面显示', { 
+        isPetShown: floatWindow.isPetShown.value, 
+        isMonitoring: monitor.isMonitoring.value 
+    });
     
-    // chat composable 需要特殊处理以保持 ref 的响应性
-    const chatComposable = useChat();
-    // 直接将 ref 存储为属性，Vue 3 会自动处理
-    this.chatMessages = chatComposable.messages;
-    this.chatUserInput = chatComposable.userInput;
-    this.chatIsSending = chatComposable.isSending;
-    this.chatQuickReplies = chatComposable.quickReplies;
-    this.chatMethods = {
-      loadMessages: chatComposable.loadMessages,
-      sendMessage: chatComposable.sendMessage,
-      sendQuickReply: chatComposable.sendQuickReply
-    };
+    // 检查权限状态
+    permissions.checkPermissions();
     
-    this.ai = useAI();
+    // 恢复悬浮窗实例(如果需要)
+    floatWindow.reinitInstance();
     
-    console.log('[index.vue created] chatUserInput ref:', this.chatUserInput);
+    // 加载成长数据
+    growth.loadData();
     
-    // 加载成长系统数据
-    if (this.growth) {
-      this.growth.loadData();
-    }
+    // 加载成长日志
+    growthLog.loadCachedData();
+    
     // 加载聊天历史
-    if (this.chatMethods) {
-      this.chatMethods.loadMessages();
-    }
-  },
+    chat.loadMessages();
+});
 
-  onShow() {
-    logUserAction('页面显示', { isPetShown: this.isPetShown, isMonitoring: this.isMonitoring });
-    this.checkPermissions();
-    
-    // 页面恢复时重建悬浮窗实例
-    if (!this.floatWinInstance && this.isPetShown) {
-      this.floatWinInstance = new FloatWindow();
-    }
-    this.petMessage = this.isPetShown ? "我在看着你..." : "zzz...";
-    
-    // 读取日志缓存
-    const fullLogs = uni.getStorageSync('pet_growth_logs') || [];
-    this.growthLogs = fullLogs.slice(0, 3);
-    
-    // 读取心情缓存
-    const cachedMood = uni.getStorageSync('pet_mood_cache');
-    if (cachedMood !== '' && cachedMood !== null) {
-      this.mood = cachedMood;
-    }
-  },
+// ========== 4. 事件处理器 ==========
 
-  methods: {
-    addLog(msg) {
-      const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-      this.logText += `[${time}] ${msg}\n`;
-      this.scrollTop += 50;
-    },
+/**
+ * 切换宠物显示
+ */
+const handleTogglePet = () => {
+    logUserAction('切换宠物显示', { 当前状态: floatWindow.isPetShown.value ? '显示中' : '隐藏' });
+    permissions.checkPermissions();
+    floatWindow.togglePet(permissions.hasFloatPermission.value);
+};
 
-    // 成长日志
-    addGrowthLog(msg, val) {
-      const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-      const timestamp = Date.now();
-      const newLog = { time, msg, val, timestamp };
+/**
+ * 切换监控状态
+ */
+const handleToggleMonitor = () => {
+    logUserAction('切换监控状态', { 当前状态: monitor.isMonitoring.value ? '监控中' : '停止' });
+    permissions.checkPermissions();
+    monitor.toggleMonitor(permissions.hasUsagePermission.value);
+};
 
-      this.growthLogs.unshift(newLog);
-      if (this.growthLogs.length > 3) this.growthLogs.pop();
+/**
+ * 监控间隔变更
+ */
+const handleIntervalChange = (value) => {
+    monitor.updateMonitorInterval(value);
+};
 
-      try {
-        let history = uni.getStorageSync('pet_growth_logs') || [];
-        history.unshift(newLog);
-        if (history.length > 500) history = history.slice(0, 500);
-        uni.setStorageSync('pet_growth_logs', history);
-        uni.setStorageSync('pet_mood_cache', this.mood);
-      } catch (e) {
-        console.error("日志存储失败", e);
-      }
-    },
-
-    // AI 评论
-    async triggerPetComment(appName, type) {
-      const now = Date.now();
-      if (now - this.lastAiReq < 60000) {
-        const fallback = type === 'bad' ? "还在玩？！<br>😡" : "继续保持！<br>❤️";
-        const msgType = type === 'bad' ? 2 : 1;
-        if (this.floatWinInstance) this.floatWinInstance.sendDataToJs(msgType, fallback);
-        return;
-      }
-      
-      this.lastAiReq = now;
-      
-      // 确保传递 addLog 方法
-      if (this.ai && this.ai.triggerPetComment) {
-        await this.ai.triggerPetComment(
-          appName, 
-          type, 
-          (msgType, msg) => {
-            if (this.floatWinInstance) this.floatWinInstance.sendDataToJs(msgType, msg);
-          }, 
-          (logMsg) => {
-            this.addLog(logMsg);
-          }
-        );
-      }
-    },
-
-    // 权限检查
-    checkPermissions() {
-      if (uni.getSystemInfoSync().platform !== 'android') return;
-      try {
-        const Settings = plus.android.importClass("android.provider.Settings");
-        const context = plus.android.runtimeMainActivity();
-        this.hasFloatPermission = Settings.canDrawOverlays(context);
-        const AppOpsManager = plus.android.importClass("android.app.AppOpsManager");
-        const Process = plus.android.importClass("android.os.Process");
-        const appOps = context.getSystemService(context.APP_OPS_SERVICE);
-        const mode = appOps.checkOpNoThrow(
-          AppOpsManager.OPSTR_GET_USAGE_STATS,
-          Process.myUid(),
-          context.getPackageName()
-        );
-        this.hasUsagePermission = (mode === AppOpsManager.MODE_ALLOWED);
-      } catch (e) {
-        console.error('权限检查失败:', e);
-      }
-    },
-
-    // 请求权限
-    requestPermission(type) {
-      const main = plus.android.runtimeMainActivity();
-      const Intent = plus.android.importClass("android.content.Intent");
-      const Settings = plus.android.importClass("android.provider.Settings");
-      const Uri = plus.android.importClass("android.net.Uri");
-
-      if (type === 'float') {
-        const intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-        intent.setData(Uri.parse("package:" + main.getPackageName()));
-        main.startActivity(intent);
-      } else if (type === 'usage') {
-        const intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-        main.startActivity(intent);
-      }
-    },
-
-    // 悬浮窗控制
-    handleTogglePet() {
-      logUserAction('切换宠物显示', { 当前状态: this.isPetShown ? '显示中' : '隐藏' });
-      this.checkPermissions();
-      if (!this.hasFloatPermission) {
-        this.addLog("错误: 缺少悬浮窗权限");
-        this.requestPermission('float');
-        return;
-      }
-
-      if (this.isPetShown) {
-        if (this.floatWinInstance) {
-          try { this.floatWinInstance.dismiss(); } catch(e) {}
-        }
-        this.isPetShown = false;
-        this.petMessage = "zzz...";
-        this.addLog("系统: 寄生兽已收回");
-      } else {
-        this.showFloatWindow();
-      }
-    },
-
-    showFloatWindow() {
-      try {
-        const rawPath = '/static/pet.html';
-        const absolutePath = plus.io.convertLocalFileSystemURL(rawPath);
-        
-        if (!this.floatWinInstance) {
-          this.floatWinInstance = new FloatWindow();
-        }
-
-        this.floatWinInstance.loadUrl(absolutePath);
-        const w = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
-        const h = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
-        this.floatWinInstance.setFixedWidthHeight(true, w, h);
-        
-        const x = this.floatWinInstance.convertHtmlPxToAndroidPx(200);
-        const y = this.floatWinInstance.convertHtmlPxToAndroidPx(300);
-        this.floatWinInstance.setLocation(x, y);
-
-        this.floatWinInstance.setShowPattern(3);
-        this.floatWinInstance.setDragEnable(true);
-
-        // 监听 Web 消息
-        this.floatWinInstance.onListenerWebData((type, msg) => {
-          if (msg === 'pet_clicked') {
-            this.petMessage = "别戳我！去背单词！";
-            this.mood = Math.min(100, this.mood + 2);
-            this.addGrowthLog("与宠物互动", 2);
-            setTimeout(() => {
-              this.floatWinInstance.sendDataToJs(1, "别戳我！<br>去背单词！");
-            }, 100);
-          }
-        });
-
-        this.floatWinInstance.createAndShow();
-        this.isPetShown = true;
-        this.petMessage = "正在扫描环境...";
-        this.addLog("系统: 寄生兽召唤成功");
-
-      } catch (e) {
-        console.error(e);
-        this.addLog("错误: " + e.message);
-        this.floatWinInstance = null;
-      }
-    },
-
-    // 监控控制
-    handleToggleMonitor() {
-      logUserAction('切换监控状态', { 当前状态: this.isMonitoring ? '监控中' : '停止' });
-      this.checkPermissions();
-      if (!this.hasUsagePermission) {
-        this.addLog("错误: 缺少监控权限");
-        this.requestPermission('usage');
-        return;
-      }
-
-      if (this.isMonitoring) {
-        clearInterval(this.monitorInterval);
-        this.isMonitoring = false;
-        this.addLog("监控: 已停止");
-      } else {
-        this.isMonitoring = true;
-        this.addLog(`监控: 已开启 (频率: ${this.monitorIntervalTime}ms)`);
-        this.checkCurrentApp();
-        this.monitorInterval = setInterval(() => {
-          this.checkCurrentApp();
-        }, this.monitorIntervalTime);
-      }
-    },
-
-    // 监控核心
-    checkCurrentApp() {
-      try {
-        const context = plus.android.runtimeMainActivity();
-        const UsageStatsManager = plus.android.importClass("android.app.usage.UsageStatsManager");
-        const Context = plus.android.importClass("android.content.Context");
-        const System = plus.android.importClass("java.lang.System");
-        const manager = context.getSystemService(Context.USAGE_STATS_SERVICE);
-        
-        if (!manager) return;
-
-        const endTime = System.currentTimeMillis();
-        const startTime = endTime - 10000;
-        const statsList = manager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime);
-        
-        const size = plus.android.invoke(statsList, "size");
-        
-        if (size > 0) {
-          let currentPackage = "";
-          let lastTime = 0;
-          
-          for (let i = 0; i < size; i++) {
-            const stats = plus.android.invoke(statsList, "get", i);
-            const timeObj = plus.android.invoke(stats, "getLastTimeUsed");
-            const pkgObj = plus.android.invoke(stats, "getPackageName");
-            
-            if (timeObj > lastTime) {
-              lastTime = timeObj;
-              currentPackage = pkgObj;
-            }
-          }
-
-          if (currentPackage && 
-              currentPackage.indexOf("launcher") === -1 && 
-              currentPackage.indexOf("home") === -1) {
-              
-              if (this.lastPackage !== currentPackage) {
-                this.addLog("检测到应用切换: " + currentPackage);
-                this.lastPackage = currentPackage;
-                
-                const whitelist = uni.getStorageSync('pet_whitelist') || [];
-                const blacklist = uni.getStorageSync('pet_blacklist') || [];
-                const appName = this.getAppName(currentPackage);
-
-                if (whitelist.includes(currentPackage)) {
-                  // 白名单
-                  this.mood = Math.min(100, this.mood + 5);
-                  this.exp += 10;
-                  this.addGrowthLog(`投喂成功 (${appName})`, 5);
-                  this.addLog(`>>> 正在学习: ${appName} (经验+10)`);
-                  this.triggerPetComment(appName, 'good');
-
-                } else if (blacklist.includes(currentPackage)) {
-                  // 黑名单
-                  this.mood = Math.max(0, this.mood - 10);
-                  this.addGrowthLog(`误食毒药 (${appName})`, -10);
-                  this.addLog(`>>> 警告: 正在摸鱼 ${appName} (心情-10)`);
-                  this.triggerPetComment(appName, 'bad');
-
-                } else {
-                  // 未知应用
-                  this.mood = Math.max(0, this.mood - 1);
-                  this.addLog(`>>> 正在使用: ${appName}`);
-                  if (this.floatWinInstance) {
-                    this.floatWinInstance.sendDataToJs(3, "");
-                  }
-                }
-              }
-          }
-        }
-      } catch (e) {
-        console.log("Monitor tick error:", e);
-      }
-    },
-
-    getAppName(pkg) {
-      if (!pkg) return "未知";
-      const parts = pkg.split('.');
-      return parts[parts.length - 1];
-    },
-
-    handleIntervalChange(value) {
-      this.monitorIntervalTime = value;
-      this.addLog(`配置更新: 扫描间隔 -> ${this.monitorIntervalTime}ms`);
-      if (this.isMonitoring) {
-        clearInterval(this.monitorInterval);
-        this.monitorInterval = setInterval(() => {
-          this.checkCurrentApp();
-        }, this.monitorIntervalTime);
-      }
-    },
-
-    openSelector(mode) {
-      uni.showLoading({ title: '准备中...', mask: true });
-      setTimeout(() => {
+/**
+ * 打开应用选择器
+ */
+const openSelector = (mode) => {
+    uni.showLoading({ title: '准备中...', mask: true });
+    setTimeout(() => {
         uni.hideLoading();
         uni.navigateTo({
-          url: `/pages/config/app-selector?mode=${mode}`,
-          fail: () => uni.hideLoading()
+            url: `/pages/config/app-selector?mode=${mode}`,
+            fail: () => uni.hideLoading()
         });
-      }, 100);
-    },
+    }, 100);
+};
 
-    openHistory() {
-      uni.navigateTo({ url: '/pages/log/log-history' });
-    },
+/**
+ * 打开成长历史
+ */
+const openHistory = () => {
+    uni.navigateTo({ url: '/pages/log/log-history' });
+};
+
+/**
+ * 处理用户输入更新
+ */
+const handleUserInputUpdate = (value) => {
+    console.log('[index.vue] handleUserInputUpdate', value);
+    if (chat.userInput) {
+        chat.userInput.value = value;
+    }
+};
+
+/**
+ * 发送消息
+ */
+const handleSendMessage = async (content) => {
+    logUserAction('发送消息', { 内容: content.substring(0, 30) });
     
-    // ========== 聊天功能相关方法 ==========
+    const context = {
+        level: growth.petLevel.value,
+        mood: growth.mood.value,
+        todayStudyTime: growth.todayStudyTime.value,
+        todayIdleTime: growth.todayIdleTime.value
+    };
     
-    /**
-     * 处理用户输入更新
-     */
-    handleUserInputUpdate(value) {
-      console.log('[index.vue] handleUserInputUpdate', value);
-      if (this.chatUserInput) {
-        this.chatUserInput.value = value;
-        console.log('[index.vue] 更新后:', this.chatUserInput.value);
-      }
-    },
-    
-    /**
-     * 处理发送消息
-     */
-    async handleSendMessage(content) {
-      logUserAction('发送消息', { 内容: content.substring(0, 30) });
-      if (!this.chatMethods || !this.ai) return;
-      
-      const context = {
-        level: this.growth.petLevel.value,
-        mood: this.growth.mood.value,
-        todayStudyTime: this.growth.todayStudyTime.value,
-        todayIdleTime: this.growth.todayIdleTime.value
-      };
-      
-      await this.chatMethods.sendMessage(
+    await chat.sendMessage(
         content,
         async (userMsg, ctx) => {
             try {
                 // 构建聊天历史
-                const history = this.chatMessages.value
+                const history = chat.messages.value
                     .filter(m => m.role !== 'system')
                     .map(m => ({
                         role: m.role === 'user' ? 'user' : 'assistant',
                         content: m.content
                     }));
                 
-                const reply = await this.ai.chatWithPet(userMsg, ctx, history);
+                const reply = await ai.chatWithPet(userMsg, ctx, history);
                 return reply;
             } catch (e) {
                 return '嗯...让我想想 💭';
             }
         },
         context
-      );
-    },
+    );
+};
+
+/**
+ * 快捷回复
+ */
+const handleQuickReply = async (replyId) => {
+    logUserAction('点击快捷回复', { replyId });
     
-    async handleQuickReply(replyId) {
-      logUserAction('点击快捷回复', { replyId });
-      if (!this.chatMethods || !this.growth) return;
-      
-      const context = {
-        level: this.growth.petLevel.value,
-        mood: this.growth.mood.value,
-        todayStudyTime: this.growth.todayStudyTime.value,
-        todayIdleTime: this.growth.todayIdleTime.value
-      };
-      
-      this.chatMethods.sendQuickReply(
+    const context = {
+        level: growth.petLevel.value,
+        mood: growth.mood.value,
+        todayStudyTime: growth.todayStudyTime.value,
+        todayIdleTime: growth.todayIdleTime.value
+    };
+    
+    chat.sendQuickReply(
         replyId,
         async (userMsg, ctx) => {
             try {
                 // 构建聊天历史
-                const history = this.chatMessages.value
+                const history = chat.messages.value
                     .filter(m => m.role !== 'system')
                     .map(m => ({
                         role: m.role === 'user' ? 'user' : 'assistant',
                         content: m.content
                     }));
                 
-                const reply = await this.ai.chatWithPet(userMsg, ctx, history);
+                const reply = await ai.chatWithPet(userMsg, ctx, history);
                 return reply;
             } catch (e) {
                 return '嗯...让我想想 💭';
             }
         },
         context
-      );
-    }
-  }
+    );
 };
 </script>
 

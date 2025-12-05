@@ -35,8 +35,8 @@
       <view class="growth-preview">
         <view v-for="(item, index) in growthLogs" :key="index" class="log-item">
           <text class="log-time">[{{ item.time }}]</text>
-          <text class="log-content">{{ item.msg }}</text>
-          <text class="log-val" :class="item.val > 0 ? 't-green' : 't-red'">
+          <rich-text class="log-content" :nodes="formatLogMsg(item.msg)"></rich-text>
+          <text v-if="item.val !== 0" class="log-val" :class="item.val > 0 ? 't-green' : 't-red'">
             {{ item.val > 0 ? '+' : '' }}{{ item.val }}
           </text>
         </view>
@@ -69,6 +69,18 @@ export default {
     growthLogs: {
       type: Array,
       default: () => []
+    }
+  },
+  methods: {
+    // 格式化日志消息,让数字显示不同颜色
+    formatLogMsg(msg) {
+      // 将 +数字 显示为绿色, -数字 显示为红色
+      let formatted = msg;
+      // 匹配 +数字
+      formatted = formatted.replace(/(\+\d+)/g, '<span style="color:#2ed573;font-weight:bold;">$1</span>');
+      // 匹配 -数字
+      formatted = formatted.replace(/(\-\d+)/g, '<span style="color:#ff4757;font-weight:bold;">$1</span>');
+      return formatted;
     }
   }
 }

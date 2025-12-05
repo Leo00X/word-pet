@@ -1,5 +1,8 @@
 👾 WordParasite (单词寄生兽) | Desktop AI Companion
 
+> **📅 最新更新**: 2025-12-05 - Index.vue 重构 (584→279行) + 聊天UI升级 + 彩色日志  
+> 📖 查看详细更新日志: [UPDATES.md](./UPDATES.md) | AI使用指南: [AI_GUIDE.md](./AI_GUIDE.md)
+
 "It watches you. It judges you. It forces you to learn."
 
 一个基于 Android 原生能力的桌面 AI 伴侣。它不是单词书，它是住在你手机桌面上、在你摸鱼时“重拳出击”的毒舌监督者与陪伴。
@@ -230,64 +233,40 @@ Created by WordParasite Team.
 
 ---
 
-## 🎉 代码重构成就 (2025-12-04)
+## 🎉 代码重构成就 (2025-12-05)
 
-### ✅ 模块化重构完成
+### ✅ Index.vue 深度重构完成
 
-原始 `pages/index/index.vue` (761行) 已成功拆分为组件化架构：
+原始 `pages/index/index.vue` (584行) 已成功压缩至 **279行** (减少 **52%**)：
 
-**新增文件结构**：
+**架构升级**：
+- ❌ Options API (`data`, `methods`) 
+- ✅ Vue 3 Composition API (`<script setup>`)
+- ✅ 逻辑全部迁移至 Composables
+
+**新增 Composable**：
 ```
-pages/index/
-├── index.vue (~350行)          # 主控台（集成所有业务逻辑）
-├── components/                  # UI 组件层（6个组件）
-│   ├── StatusBar.vue           # 顶部状态栏（等级、金币）
-│   ├── PetScreen.vue           # 宠物显示屏（头像、气泡、属性条）
-│   ├── TabSwitch.vue           # Tab 切换器
-│   ├── StatusPanel.vue         # 状态监控面板
-│   ├── ConfigPanel.vue         # 配置面板
-│   └── TerminalModal.vue       # 终端弹窗
-├── composables/                 # 业务逻辑层
-│   └── useAI.js                # AI 评论系统
-└── utils/                       # 工具函数
-    └── appMapper.js            # 应用名称映射
+pages/index/composables/
+├── useTerminal.js    # [新增] 终端日志管理
+├── useMonitor.js     # [增强] 集成成长系统和日志
+└── useGrowthLog.js   # 成长日志与持久化
 ```
 
-**重构成果**：
-- 📉 主文件代码量减少 **54%** (761行 → 350行)
-- 🧩 创建 **6个可复用UI组件**
-- ✅ 保持 **100%功能完整性**
-- 📚 提升代码可维护性和可读性
-- 🎯 每个组件职责单一，易于测试和调试
+**UI 升级**：
+- ✨ ChatBubble: Markdown渲染 + 光晕头像 + 渐变气泡
+- ✨ ChatPanel: 现代化风格 + 渐变发送按钮
+- ✨ StatusPanel: 彩色数字日志 (+绿/-红)
+
+**Bug 修复 (5个)**：
+| # | 问题 | 状态 |
+|---|------|------|
+| 1 | growthLogs 响应式绑定 | ✅ |
+| 2 | 成长日志不记录 | ✅ |
+| 3 | Markdown 不渲染 | ✅ |
+| 4 | 换行符不显示 | ✅ |
+| 5 | 互动日志不完整 | ✅ |
 
 ```
----
-### 增加一个聊天对话窗口功能和宠物成长系统
-
-聊天系统
-💬 App内独立聊天Tab
-🤖 AI对话（携带宠物状态上下文）
-💾 消息历史持久化（最近100条）
-⚡ 4个快捷回复按钮
-成长系统
-📊 6维数值模型（等级/经验/心情/金币/饥饿/亲密）
-🎭 4种宠物类型（幽灵🐕🦜，使用emoji显示）
-🌟 6种形态状态（蛋→幼年→成年→特殊形态）
-🎮 完整奖惩机制（学习奖励/摸鱼惩罚/自然衰减）
-📝 新增/修改文件
-新增6个文件：
-
-useGrowth.js, useChat.js
-growthFormula.js, petForms.js
-ChatPanel.vue, ChatBubble.vue
-修改4个文件：
-
-index.vue, PetScreen.vue, TabSwitch.vue, useAI.js
-📖 如何使用
-查看聊天：切换到"💬 对话"Tab，与宠物AI对话
-查看数值：主屏幕显示4个进度条（心情/经验/饥饿/亲密）
-宠物emoji：会根据等级和心情自动切换形态
-
 ---
 ### 可用的日志函数
 如果您想在其他地方添加日志，可以导入并使用：
@@ -319,25 +298,4 @@ utils/debugLog.js
 ```javascript
 const DEBUG_ENABLED = false; // 设置为 false 关闭所有日志
 ```
----
-### 2025年12月5日01:45:44 
 
-### ✅ AI 模型切换系统实施完成！
-
-#### 核心成果：
-
-✨ 创建了 7 个新文件（加密工具、适配器、服务层、配置管理、UI页面）
-🔧 修改了 3 个现有文件（ConfigPanel、useAI、pages.json）
-🎨 UI 采用赛博朋克风格，与主应用统一
-🔒 API Key 使用 XOR 加密存储
-关键发现： Gemini 已支持 OpenAI 兼容端点，代码极大简化：
-
-javascript
-// 使用标准 OpenAI 格式，无需复杂转换
-url: 'https://.../v1beta/openai/chat/completions'
-下一步： 请在 HBuilderX 中运行项目到真机测试：
-
-进入"系统设置" → "🤖 AI 模型选择"
-配置 Gemini API Key（从 https://aistudio.google.com/apikey 获取）
-测试连接 → 切换模型 → 触发 AI 对话验证
-详细说明请查看 walkthrough.md。如有问题请告诉我！

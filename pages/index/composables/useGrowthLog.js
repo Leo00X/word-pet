@@ -30,19 +30,23 @@ export function useGrowthLog() {
     /**
      * 添加成长日志
      * @param {string} msg - 日志消息
-     * @param {number} val - 数值变化（正数增加，负数减少）
+     * @param {number} val - 数值变化(正数增加,负数减少)
      */
     const addGrowthLog = (msg, val) => {
-        const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const time = `${hours}:${minutes}:${seconds}`;
         const timestamp = Date.now();
         const newLog = { time, msg, val, timestamp };
 
-        // 更新前端显示（只显示最近3条）
+        // 更新前端显示(只显示最近3条)
         growthLogs.value.unshift(newLog);
         if (growthLogs.value.length > 3) growthLogs.value.pop();
 
         try {
-            // 持久化存储（保留最近500条）
+            // 持久化存储(保留最近500条)
             let history = uni.getStorageSync('pet_growth_logs') || [];
             history.unshift(newLog);
             if (history.length > 500) history = history.slice(0, 500);

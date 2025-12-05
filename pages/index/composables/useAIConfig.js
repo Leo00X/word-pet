@@ -5,11 +5,11 @@
  */
 
 import { ref, computed } from 'vue';
-import { setSecureStorage, getSecureStorage } from '@/utils/encryptStorage.js';
+import { setSecureStorage, getSecureStorage, migrateOldData } from '@/utils/encryptStorage.js';
 
-// 默认配置（初始状态）
+// 默认配置（初始状态）- API Key 会在保存时自动加密
 const DEFAULT_CONFIG = {
-    currentModelId: 'deepseek-default',
+    currentModelId: 'gemini-default', // 默认使用 Gemini Flash
     presetModels: [
         {
             id: 'deepseek-default',
@@ -17,7 +17,7 @@ const DEFAULT_CONFIG = {
             type: 'deepseek',
             icon: '🧠',
             description: '高性能对话模型',
-            apiKey: 'sk-6845e5b983dc89387ef4ab8235361fe5a51749d14122342342a0d2898af2b9f4', // 原有的 Key
+            apiKey: '', // 需要用户自行配置
             baseUrl: 'https://api.qnaigc.com/v1/chat/completions',
             modelId: 'deepseek/deepseek-v3.2-251201',
             isPreset: true
@@ -28,7 +28,7 @@ const DEFAULT_CONFIG = {
             type: 'gemini',
             icon: '✨',
             description: '支持思维链推理',
-            apiKey: 'AIzaSyBSk3gZvA8JLUyU1qgnZ8j2WtPFc7wNUjs', // Gemini API Key
+            apiKey: 'AIzaSyBxZVBLUCYMbDBq4ZefROgMAGUVBTiefS4',
             modelId: 'gemini-2.5-flash',
             isPreset: true
         },
@@ -38,13 +38,14 @@ const DEFAULT_CONFIG = {
             type: 'gemini',
             icon: '💎',
             description: '最强思维能力，深度推理',
-            apiKey: 'AIzaSyCcqKbqhkEk76l3EqL_g72XByDCTQZ3XnI',
+            apiKey: 'AIzaSyB5rFGpqZ_HaXHWrFMTXkJIz9DIbksODxw',
             modelId: 'gemini-2.5-pro',
             isPreset: true
         }
     ],
     customModels: []
 };
+
 
 // 响应式状态
 const config = ref(null);
