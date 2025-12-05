@@ -69,7 +69,8 @@ export default {
         { id: 'gift', icon: '🎁', name: '礼物', description: '增加10点亲密度', count: 0, effect: { bond: 10 } },
         { id: 'expbook', icon: '⭐', name: '经验书', description: '增加50点经验值', count: 2, effect: { exp: 50 } },
         { id: 'treat', icon: '🍬', name: '零食', description: '恢复5点饥饿度和5点心情', count: 5, effect: { hunger: 5, mood: 5 } },
-        { id: 'toy', icon: '🧸', name: '玩具', description: '增加5点亲密度和5点心情', count: 0, effect: { bond: 5, mood: 5 } }
+        { id: 'toy', icon: '🧸', name: '玩具', description: '增加5点亲密度和5点心情', count: 0, effect: { bond: 5, mood: 5 } },
+        { id: 'game_ticket', icon: '🎮', name: '游戏券', description: '开始猜单词挑战！赢取经验和金币', count: 99, effect: null }
       ]
     };
   },

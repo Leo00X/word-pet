@@ -51,7 +51,6 @@
         @open-skin-selector="showSkinModal = true"
         @open-skin-market="showMarketModal = true"
         @open-backup="showBackupModal = true"
-        @dev-refresh="growth.loadData()"
       />
       
       <!-- 聊天面板 -->
@@ -429,16 +428,9 @@ const handleTogglePet = () => {
     permissions.checkPermissions();
     floatWindow.togglePet(permissions.hasFloatPermission.value);
     
-    // 如果是开启悬浮窗，同步皮肤和待发送的问候
+    // 如果是开启悬浮窗，检查是否有待发送的问候
     setTimeout(() => {
         if (floatWindow.isPetShown.value) {
-            // 同步当前皮肤到悬浮窗
-            const currentSkin = skins.currentSkin.value;
-            if (currentSkin && currentSkin.id !== 'default') {
-                skins.syncSkinToFloat(currentSkin);
-            }
-            
-            // 检查是否有待发送的问候
             const pending = getAndClearPendingGreeting();
             if (pending) {
                 floatWindow.sendMessageToFloat(1, pending);
@@ -532,27 +524,14 @@ const handleSkinPurchase = (data) => {
         growth.changeCoins(-data.price);
     }
     
-    // 添加皮肤到本地列表
-    skins.addSkin(data.skinData);
+    // TODO: 添加皮肤到本地列表
+    // skins.addSkin(data.skinData);
     
     // 记录日志
     growthLog.addGrowthLog(`购买皮肤「${data.skinData.name}」`, 0);
     
     // 播放动画
     animations.playHappy(2000);
-    
-    // 关闭商城弹窗，打开皮肤管理（让用户立即切换新皮肤）
-    showMarketModal.value = false;
-    
-    // 延迟打开皮肤管理，让关闭动画完成
-    setTimeout(() => {
-        showSkinModal.value = true;
-        uni.showToast({ 
-            title: `✅ 已购买 ${data.skinData.name}`, 
-            icon: 'none',
-            duration: 2000
-        });
-    }, 300);
 };
 
 /**

@@ -36,6 +36,33 @@
       <text class="arrow">></text>
     </view>
 
+    <view class="setting-item" @click="$emit('open-skin-selector')">
+      <view class="icon-box">🎨</view>
+      <view class="setting-text">
+        <text class="main-text">皮肤管理</text>
+        <text class="sub-text">切换宠物外观和动画效果</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
+    <view class="setting-item" @click="$emit('open-skin-market')">
+      <view class="icon-box">🛒</view>
+      <view class="setting-text">
+        <text class="main-text">皮肤商城</text>
+        <text class="sub-text">购买和解锁更多皮肤</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
+    <view class="setting-item" @click="$emit('open-backup')">
+      <view class="icon-box">☁️</view>
+      <view class="setting-text">
+        <text class="main-text">数据备份</text>
+        <text class="sub-text">导出导入或云端同步</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-block">
       <text class="block-title">扫描频率 ({{ (monitorIntervalTime / 1000).toFixed(0) }} 秒/次)</text>
       <slider 
@@ -58,6 +85,19 @@
     <button class="game-btn clear-btn" @click="confirmClearChat">
       <text>🗑️ 清除聊天记录</text>
     </button>
+
+    <!-- 开发者测试按钮 -->
+    <view class="dev-section">
+      <text class="block-title">🛠️ 开发者模式</text>
+      <view class="dev-buttons">
+        <button class="dev-btn" @click="quickLevelUp">
+          <text>⬆️ 升10级</text>
+        </button>
+        <button class="dev-btn" @click="addCoins">
+          <text>🪙 +500金币</text>
+        </button>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -111,6 +151,24 @@ export default {
           });
         }
       });
+    },
+    // 开发者测试：快速升10级
+    quickLevelUp() {
+      for (let i = 0; i < 10; i++) {
+        const level = uni.getStorageSync('pet_level') || 1;
+        uni.setStorageSync('pet_level', level + 1);
+      }
+      const newLevel = uni.getStorageSync('pet_level') || 1;
+      uni.showToast({ title: `当前等级: ${newLevel}`, icon: 'success' });
+      // 刷新页面使生效
+      this.$emit('dev-refresh');
+    },
+    // 开发者测试：添加500金币
+    addCoins() {
+      const coins = uni.getStorageSync('pet_coins') || 0;
+      uni.setStorageSync('pet_coins', coins + 500);
+      uni.showToast({ title: `+500 金币`, icon: 'success' });
+      this.$emit('dev-refresh');
     }
   }
 }
@@ -188,5 +246,31 @@ $text-dim: #747d8c;
   background: #ff4757;
   margin-top: 12px;
   font-size: 12px;
+}
+
+/* 开发者测试区域 */
+.dev-section {
+  margin-top: 30px;
+  padding: 15px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px dashed #ffd700;
+  border-radius: 8px;
+}
+
+.dev-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.dev-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #2ed573, #1e90ff);
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  color: #fff;
+  font-weight: bold;
 }
 </style>

@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Lottie Player -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <style>
         /* 全局重置 */
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            /* 关键：透明背景，配合悬浮窗插件，否则会有一个白色方块 */
-            background-color: transparent; 
+            background-color: transparent;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: sans-serif;
-            /* 防止长按选中文本干扰体验 */
+            font-family: 'Segoe UI', sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
 
-        /* 容器：承载幽灵和气泡 */
+        /* 容器 */
         .container {
             position: relative;
             width: 160px;
@@ -32,17 +34,17 @@
             align-items: center;
             justify-content: flex-end;
             cursor: pointer;
-            /* 点击时的缩放反馈 */
             transition: transform 0.1s;
         }
+
         .container:active {
             transform: scale(0.95);
         }
 
         /* --- 对话气泡样式 --- */
         .bubble {
-            background: rgba(0, 0, 0, 0.85);
-            color: #00e676; /* 极客绿，符合黑客/AI主题 */
+            background: var(--bubble-bg, rgba(0, 0, 0, 0.85));
+            color: var(--bubble-color, #00e676);
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 12px;
@@ -51,24 +53,19 @@
             text-align: center;
             margin-bottom: 10px;
             position: relative;
-            
-            /* 动画初始状态：隐藏且下沉 */
-            opacity: 0; 
+            opacity: 0;
             transform: translateY(10px);
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            pointer-events: none; /* 关键：让气泡不阻挡点击下方的宠物 */
-            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            border: 1px solid var(--bubble-border, #333);
         }
-        
-        /* 气泡显示时的类 */
+
         .bubble.show {
             opacity: 1;
             transform: translateY(0);
         }
-        
-        /* 气泡底部的小三角 */
+
         .bubble::after {
             content: '';
             position: absolute;
@@ -77,22 +74,173 @@
             transform: translateX(-50%);
             border-width: 6px 6px 0;
             border-style: solid;
-            border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+            border-color: var(--bubble-bg, rgba(0, 0, 0, 0.85)) transparent transparent transparent;
         }
 
-        /* --- 幽灵主体 (纯CSS绘制) --- */
-        .ghost {
+        /* 气泡样式变体 */
+        .bubble.cyberpunk {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.9), rgba(255, 0, 255, 0.9));
+            color: #fff;
+            border: 1px solid #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .bubble.success {
+            background: rgba(46, 213, 115, 0.9);
+            color: #fff;
+            border-color: #2ed573;
+        }
+
+        .bubble.warning {
+            background: rgba(255, 71, 87, 0.9);
+            color: #fff;
+            border-color: #ff4757;
+        }
+
+        /* --- 宠物区域 --- */
+        .pet-area {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Lottie 动画容器 */
+        #lottie-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Emoji 宠物（CSS动画模式） */
+        .pet-emoji {
+            font-size: 70px;
+            line-height: 1;
+            z-index: 10;
+            filter: drop-shadow(0 0 15px var(--glow-color, rgba(0, 217, 255, 0.4)));
+            transition: all 0.3s ease;
+        }
+
+        /* --- CSS 动画类 --- */
+        .anim-idle {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .anim-happy {
+            animation: bounce 0.5s ease infinite;
+        }
+
+        .anim-angry {
+            animation: shake 0.3s ease infinite;
+            filter: drop-shadow(0 0 20px rgba(255, 68, 68, 0.8)) !important;
+        }
+
+        .anim-study {
+            animation: pulse 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 20px rgba(46, 213, 115, 0.6)) !important;
+        }
+
+        .anim-interact {
+            animation: heartbeat 0.6s ease;
+            filter: drop-shadow(0 0 25px rgba(255, 102, 204, 0.8)) !important;
+        }
+
+        /* --- 关键帧动画 --- */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-12px);
+            }
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-15px) scale(1.1);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateX(-5px) rotate(-5deg);
+            }
+
+            75% {
+                transform: translateX(5px) rotate(5deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+
+        @keyframes heartbeat {
+            0% {
+                transform: scale(1);
+            }
+
+            25% {
+                transform: scale(1.2);
+            }
+
+            50% {
+                transform: scale(1);
+            }
+
+            75% {
+                transform: scale(1.15);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* --- 幽灵纯CSS模式（备用）--- */
+        .ghost-css {
             width: 80px;
             height: 90px;
-            background: #fff;
+            background: var(--pet-color, #fff);
             border-radius: 40px 40px 0 0;
             position: relative;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-            animation: float 3s ease-in-out infinite; /* 漂浮动画 */
-            transition: background 0.3s, box-shadow 0.3s; /* 颜色变化过渡 */
+            box-shadow: 0 0 15px var(--glow-color, rgba(255, 255, 255, 0.4));
         }
 
-        /* 幽灵底部的波浪脚 */
+        .ghost-css.angry {
+            background: #ff4444;
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
+        }
+
         .ghost-footer {
             position: absolute;
             bottom: 0;
@@ -100,14 +248,14 @@
             height: 15px;
             display: flex;
         }
+
         .wave {
             flex: 1;
-            background: inherit; /* 跟随主体颜色 */
+            background: inherit;
             border-radius: 0 0 10px 10px;
-            margin: 0 -1px; /* 消除子元素间的渲染缝隙 */
+            margin: 0 -1px;
         }
 
-        /* 眼睛容器 */
         .eyes {
             position: absolute;
             top: 35px;
@@ -116,15 +264,15 @@
             justify-content: center;
             gap: 12px;
         }
+
         .eye {
             width: 12px;
             height: 12px;
             background: #2c3e50;
             border-radius: 50%;
-            transition: all 0.2s; /* 眨眼和变形动画 */
+            transition: all 0.2s;
         }
-        
-        /* 腮红 */
+
         .blush {
             position: absolute;
             top: 50px;
@@ -134,10 +282,15 @@
             border-radius: 50%;
             opacity: 0.6;
         }
-        .blush.left { left: 12px; }
-        .blush.right { right: 12px; }
 
-        /* 嘴巴 (默认没有，愤怒或特定状态显示) */
+        .blush.left {
+            left: 12px;
+        }
+
+        .blush.right {
+            right: 12px;
+        }
+
         .mouth {
             position: absolute;
             top: 55px;
@@ -150,120 +303,321 @@
             transition: all 0.2s;
         }
 
-        /* --- 关键帧动画 --- */
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        /* --- 愤怒模式样式 (Type=2) --- */
-        .ghost.angry {
-            background: #ff4444; /* 变红 */
-            box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
-        }
-        /* 愤怒时眼睛眯起来 */
-        .ghost.angry .eye {
-            height: 4px; 
+        /* 愤怒眼睛 */
+        .ghost-css.angry .eye {
+            height: 4px;
             transform: rotate(20deg);
         }
-        .ghost.angry .eye:last-child {
+
+        .ghost-css.angry .eye:last-child {
             transform: rotate(-20deg);
         }
-        /* 愤怒时显示倒嘴 */
-        .ghost.angry .mouth {
+
+        .ghost-css.angry .mouth {
             width: 20px;
             height: 10px;
-            border-radius: 10px 10px 0 0; 
+            border-radius: 10px 10px 0 0;
             background: transparent;
             border-top: 3px solid #000;
         }
-        /* 愤怒时波浪脚也要变色 (因为用了 background: inherit) */
-
     </style>
 </head>
+
 <body>
 
     <div class="container" id="petArea">
-        <div class="bubble" id="bubble">你在看什么呢？<br>还不去背单词！</div>
-        
-        <div class="ghost" id="ghost">
-            <div class="eyes">
-                <div class="eye left"></div>
-                <div class="eye right"></div>
-            </div>
-            <div class="blush left"></div>
-            <div class="blush right"></div>
-            <div class="mouth"></div>
-            <div class="ghost-footer">
-                <div class="wave"></div>
-                <div class="wave"></div>
-                <div class="wave"></div>
-                <div class="wave"></div>
-            </div>
+        <!-- 对话气泡 -->
+        <div class="bubble" id="bubble">WordParasite<br>已寄生...</div>
+
+        <!-- 宠物区域 -->
+        <div class="pet-area">
+            <!-- Lottie 动画容器 -->
+            <div id="lottie-container"></div>
+
+            <!-- Emoji 模式 -->
+            <span class="pet-emoji anim-idle" id="petEmoji">👻</span>
+
+            <!-- CSS Ghost 模式（备用） -->
+            <!-- <div class="ghost-css anim-idle" id="ghostCss">
+                <div class="eyes">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                </div>
+                <div class="blush left"></div>
+                <div class="blush right"></div>
+                <div class="mouth"></div>
+                <div class="ghost-footer">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+            </div> -->
         </div>
     </div>
 
     <script>
+        // ========== 元素引用 ==========
         const petArea = document.getElementById('petArea');
         const bubble = document.getElementById('bubble');
-        const ghost = document.getElementById('ghost');
+        const petEmoji = document.getElementById('petEmoji');
+        const lottieContainer = document.getElementById('lottie-container');
+
+        // ========== 状态管理 ==========
         let bubbleTimer = null;
+        let currentState = 'idle';
+        let currentSkin = null;
+        let lottieAnimations = {}; // 缓存的 Lottie 动画实例
+        let currentLottie = null;
+        let renderMode = 'emoji'; // 'emoji' | 'lottie' | 'css'
 
-        // 1. 点击交互：发送消息给 uni-app
-        // 当用户点击悬浮窗时触发
-        petArea.addEventListener('click', function() {
-            // uniapp 对象由 android-floatwindow 插件注入
-            if (typeof uniapp !== 'undefined') {
-                // 参数1: type (可自定义，例如 1 表示点击事件)
-                // 参数2: data (字符串消息)
-                uniapp.sendDataToUni(1, "pet_clicked");
-            }
-            
-            // 本地简单的视觉反馈：眨眼
-            const eyes = document.querySelectorAll('.eye');
-            eyes.forEach(e => e.style.height = '2px');
-            setTimeout(() => {
-                // 如果不是愤怒模式，恢复圆眼睛
-                if (!ghost.classList.contains('angry')) {
-                    eyes.forEach(e => e.style.height = '12px');
-                } else {
-                    eyes.forEach(e => e.style.height = '4px'); // 保持眯眼
+        // ========== 消息处理 ==========
+
+        /**
+         * 接收 uni-app 消息
+         * @param {number} type - 消息类型
+         * @param {string} msg - 消息内容
+         */
+        window.dataFromUniapp = function (type, msg) {
+            console.log("[Pet] 收到消息:", type, msg);
+
+            try {
+                // 尝试解析 JSON
+                let data = msg;
+                if (typeof msg === 'string' && (msg.startsWith('{') || msg.startsWith('['))) {
+                    data = JSON.parse(msg);
                 }
-            }, 200);
-        });
 
-        // 2. 接收来自 uni-app 的数据
-        // 核心：必须挂载在 window 对象上，插件才能通过 WebView 调用到
-        window.dataFromUniapp = function(type, msg) {
-            console.log("Web received:", type, msg);
-            
-            // 协议约定 (根据你的业务需求定制)：
-            // type 0: 隐藏气泡
-            // type 1: 普通 AI 回复
-            // type 2: 愤怒 AI 回复 (变红)
-            // type 3: 恢复正常心情
-            
-            if (type === 0) {
-                hideBubble();
-            } else if (type === 1) {
-                showBubble(msg);
-                setMood('normal');
-            } else if (type === 2) {
-                showBubble(msg);
-                setMood('angry');
-            } else if (type === 3) {
-                setMood('normal');
+                switch (type) {
+                    case 0: // 隐藏气泡
+                        hideBubble();
+                        break;
+
+                    case 1: // 普通消息 + 正常状态
+                        showBubble(typeof data === 'string' ? data : data.message);
+                        changeState('idle');
+                        break;
+
+                    case 2: // 愤怒消息
+                        showBubble(typeof data === 'string' ? data : data.message);
+                        changeState('angry');
+                        break;
+
+                    case 3: // 恢复正常
+                        changeState('idle');
+                        break;
+
+                    case 98: // 动画状态切换
+                        handleStateChange(data);
+                        break;
+
+                    case 99: // 皮肤切换
+                        handleSkinChange(data);
+                        break;
+
+                    default:
+                        console.log("[Pet] 未知消息类型:", type);
+                }
+            } catch (err) {
+                console.error("[Pet] 消息处理错误:", err);
             }
         };
 
-        // --- 内部辅助函数 ---
+        /**
+         * 处理动画状态切换
+         * @param {Object} data - { action, state, duration, shake, emoji }
+         */
+        function handleStateChange(data) {
+            if (data.action !== 'change_state') return;
 
-        function showBubble(text) {
-            // 支持简单的 HTML 换行
+            const { state, duration, shake, emoji } = data;
+            changeState(state, duration);
+
+            // 如果有临时 emoji 覆盖
+            if (emoji && renderMode === 'emoji') {
+                const originalEmoji = petEmoji.textContent;
+                petEmoji.textContent = emoji;
+
+                if (duration > 0) {
+                    setTimeout(() => {
+                        petEmoji.textContent = originalEmoji;
+                    }, duration);
+                }
+            }
+        }
+
+        /**
+         * 处理皮肤切换
+         * @param {Object} data - { action, skinId, petType, animations, styles }
+         */
+        function handleSkinChange(data) {
+            if (data.action !== 'change_skin') return;
+
+            currentSkin = data;
+            console.log("[Pet] 切换皮肤:", data.skinId);
+
+            // 应用样式
+            applyStyles(data.styles);
+
+            // 切换渲染模式
+            if (data.animations && Object.keys(data.animations).some(k =>
+                data.animations[k].endsWith('.json'))
+            ) {
+                // Lottie 模式
+                switchToLottieMode(data.animations);
+            } else {
+                // Emoji/CSS 模式
+                switchToEmojiMode(data.petType);
+            }
+        }
+
+        // ========== 渲染模式切换 ==========
+
+        /**
+         * 切换到 Lottie 动画模式
+         * @param {Object} animations - { idle: 'path.json', happy: 'path.json', ... }
+         */
+        function switchToLottieMode(animations) {
+            renderMode = 'lottie';
+            petEmoji.style.display = 'none';
+            lottieContainer.style.display = 'block';
+
+            // 预加载所有动画
+            Object.keys(animations).forEach(state => {
+                if (animations[state].endsWith('.json')) {
+                    loadLottieAnimation(state, animations[state]);
+                }
+            });
+
+            // 播放 idle
+            playLottieAnimation('idle');
+        }
+
+        /**
+         * 切换到 Emoji 模式
+         * @param {string} petType - 宠物类型
+         */
+        function switchToEmojiMode(petType) {
+            renderMode = 'emoji';
+            petEmoji.style.display = 'block';
+            lottieContainer.style.display = 'none';
+
+            // 根据类型设置 emoji
+            const emojiMap = {
+                'ghost': '👻',
+                'dog': '🐕',
+                'cockatiel': '🦜',
+                'monk_parakeet': '🦜'
+            };
+            petEmoji.textContent = emojiMap[petType] || '👻';
+        }
+
+        /**
+         * 加载 Lottie 动画
+         * @param {string} name - 动画名称
+         * @param {string} path - 动画 JSON 路径
+         */
+        function loadLottieAnimation(name, path) {
+            if (lottieAnimations[name]) return; // 已加载
+
+            try {
+                lottieAnimations[name] = lottie.loadAnimation({
+                    container: lottieContainer,
+                    renderer: 'svg',
+                    loop: name === 'idle' || name === 'study',
+                    autoplay: false,
+                    path: path,
+                    name: name
+                });
+                console.log("[Pet] Lottie 加载:", name);
+            } catch (err) {
+                console.error("[Pet] Lottie 加载失败:", name, err);
+            }
+        }
+
+        /**
+         * 播放 Lottie 动画
+         * @param {string} name - 动画名称
+         */
+        function playLottieAnimation(name) {
+            if (currentLottie) {
+                currentLottie.stop();
+            }
+
+            if (lottieAnimations[name]) {
+                currentLottie = lottieAnimations[name];
+                currentLottie.goToAndPlay(0);
+            }
+        }
+
+        // ========== 状态与样式 ==========
+
+        /**
+         * 改变动画状态
+         * @param {string} state - 状态名
+         * @param {number} duration - 持续时间（0表示永久）
+         */
+        function changeState(state, duration = 0) {
+            currentState = state;
+
+            if (renderMode === 'lottie' && lottieAnimations[state]) {
+                playLottieAnimation(state);
+            } else {
+                // CSS 动画模式
+                petEmoji.className = 'pet-emoji anim-' + state;
+            }
+
+            // 自动恢复
+            if (duration > 0 && state !== 'idle') {
+                setTimeout(() => {
+                    changeState('idle');
+                }, duration);
+            }
+        }
+
+        /**
+         * 应用皮肤样式
+         * @param {Object} styles - 样式配置
+         */
+        function applyStyles(styles) {
+            if (!styles) return;
+
+            const root = document.documentElement;
+
+            // 主色调
+            if (styles.primaryColor) {
+                root.style.setProperty('--glow-color', styles.primaryColor + '66');
+                root.style.setProperty('--pet-color', styles.primaryColor);
+            }
+
+            // 气泡样式
+            if (styles.bubble) {
+                if (styles.bubble.background) {
+                    root.style.setProperty('--bubble-bg', styles.bubble.background);
+                }
+                if (styles.bubble.textColor) {
+                    root.style.setProperty('--bubble-color', styles.bubble.textColor);
+                }
+                if (styles.bubble.borderColor) {
+                    root.style.setProperty('--bubble-border', styles.bubble.borderColor);
+                }
+            }
+
+            // 气泡样式类
+            if (styles.bubbleStyle && styles.bubbleStyle !== 'default') {
+                bubble.classList.add(styles.bubbleStyle);
+            }
+        }
+
+        // ========== 气泡功能 ==========
+
+        function showBubble(text, style = 'default') {
             bubble.innerHTML = text;
-            bubble.classList.add('show');
-            
-            // 5秒后自动隐藏，避免遮挡视线
+            bubble.className = 'bubble show';
+            if (style !== 'default') {
+                bubble.classList.add(style);
+            }
+
             if (bubbleTimer) clearTimeout(bubbleTimer);
             bubbleTimer = setTimeout(() => {
                 hideBubble();
@@ -274,23 +628,220 @@
             bubble.classList.remove('show');
         }
 
-        function setMood(mood) {
-            if (mood === 'angry') {
-                ghost.classList.add('angry');
-            } else {
-                ghost.classList.remove('angry');
-                // 恢复眼睛状态
-                const eyes = document.querySelectorAll('.eye');
-                eyes.forEach(e => e.style.height = '12px');
-                eyes.forEach(e => e.style.transform = 'none');
+        // ========== 拖拽系统 ==========
+
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragThreshold = 10; // 移动超过10px才算拖拽
+        let hasMoved = false;
+
+        // 拖拽开始
+        function onDragStart(e) {
+            const touch = e.touches ? e.touches[0] : e;
+            dragStartX = touch.clientX;
+            dragStartY = touch.clientY;
+            hasMoved = false;
+
+            // 启动长按检测
+            longPressTimer = setTimeout(() => {
+                if (!hasMoved) {
+                    onLongPress();
+                }
+            }, 800);
+        }
+
+        // 拖拽移动
+        function onDragMove(e) {
+            if (!dragStartX && !dragStartY) return;
+
+            const touch = e.touches ? e.touches[0] : e;
+            const deltaX = touch.clientX - dragStartX;
+            const deltaY = touch.clientY - dragStartY;
+
+            // 检查是否超过阈值
+            if (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold) {
+                hasMoved = true;
+                isDragging = true;
+
+                // 取消长按
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+
+                // 发送拖拽事件给 uni-app（让原生层处理窗口移动）
+                if (typeof uniapp !== 'undefined') {
+                    uniapp.sendDataToUni(10, JSON.stringify({
+                        event: 'drag_move',
+                        deltaX: deltaX,
+                        deltaY: deltaY
+                    }));
+                }
             }
         }
 
-        // 初始化演示：加载完成后显示一个打招呼
+        // 拖拽结束
+        function onDragEnd(e) {
+            // 取消长按定时器
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+
+            if (isDragging) {
+                // 拖拽结束，发送吸附请求
+                if (typeof uniapp !== 'undefined') {
+                    uniapp.sendDataToUni(11, JSON.stringify({
+                        event: 'drag_end',
+                        timestamp: Date.now()
+                    }));
+                }
+                isDragging = false;
+            }
+
+            dragStartX = 0;
+            dragStartY = 0;
+        }
+
+        // ========== 交互事件 ==========
+
+        let clickCount = 0;
+        let clickTimer = null;
+        let longPressTimer = null;
+
+        // 点击处理（区分单击/双击）
+        petArea.addEventListener('click', function (e) {
+            // 如果刚拖拽过，忽略点击
+            if (hasMoved) {
+                hasMoved = false;
+                return;
+            }
+
+            clickCount++;
+
+            if (clickCount === 1) {
+                // 等待看是否有第二次点击
+                clickTimer = setTimeout(() => {
+                    // 单击
+                    onSingleClick();
+                    clickCount = 0;
+                }, 250);
+            } else if (clickCount === 2) {
+                // 双击
+                clearTimeout(clickTimer);
+                clickCount = 0;
+                onDoubleClick();
+            }
+        });
+
+        // 单击事件
+        function onSingleClick() {
+            // 通知 uni-app
+            if (typeof uniapp !== 'undefined') {
+                uniapp.sendDataToUni(1, JSON.stringify({
+                    event: 'pet_clicked',
+                    state: currentState,
+                    timestamp: Date.now()
+                }));
+            }
+
+            // 本地反馈：播放互动动画
+            changeState('interact', 1500);
+
+            // 眨眼效果（如果是 CSS 模式）
+            if (renderMode === 'css') {
+                const eyes = document.querySelectorAll('.eye');
+                eyes.forEach(e => e.style.height = '2px');
+                setTimeout(() => {
+                    eyes.forEach(e => e.style.height = '12px');
+                }, 200);
+            }
+        }
+
+        // 双击事件 - 显示快捷菜单
+        function onDoubleClick() {
+            if (typeof uniapp !== 'undefined') {
+                uniapp.sendDataToUni(4, JSON.stringify({
+                    event: 'double_click',
+                    timestamp: Date.now()
+                }));
+            }
+
+            // 显示"打开主界面"提示
+            showBubble('💬 双击打开App', 'success');
+        }
+
+        // 长按事件
+        function onLongPress() {
+            if (typeof uniapp !== 'undefined') {
+                uniapp.sendDataToUni(3, JSON.stringify({
+                    event: 'long_press',
+                    duration: 800
+                }));
+            }
+
+            // 显示选项提示
+            showBubble('📋 长按菜单');
+        }
+
+        // 触摸事件绑定
+        petArea.addEventListener('touchstart', onDragStart, { passive: true });
+        petArea.addEventListener('touchmove', onDragMove, { passive: true });
+        petArea.addEventListener('touchend', onDragEnd);
+        petArea.addEventListener('touchcancel', onDragEnd);
+
+        // 鼠标事件（H5调试用）
+        petArea.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+
+        // ========== 快捷操作 ==========
+
+        // 摇一摇检测（手机晃动）
+        if (window.DeviceMotionEvent) {
+            let lastShakeTime = 0;
+            const shakeThreshold = 25;  // 提高阈值，避免误触（原15）
+
+            window.addEventListener('devicemotion', function (e) {
+                const acc = e.accelerationIncludingGravity;
+                if (!acc) return;
+
+                const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+
+                if (total > shakeThreshold) {
+                    const now = Date.now();
+                    // 延长冷却时间到3秒，避免连续触发（原1000）
+                    if (now - lastShakeTime > 3000) {
+                        lastShakeTime = now;
+                        onShake();
+                    }
+                }
+            });
+        }
+
+        function onShake() {
+            if (typeof uniapp !== 'undefined') {
+                uniapp.sendDataToUni(5, JSON.stringify({
+                    event: 'shake',
+                    timestamp: Date.now()
+                }));
+            }
+
+            // 摇晃反馈
+            changeState('happy', 2000);
+            showBubble('🎉 摇一摇！');
+        }
+
+        // ========== 初始化 ==========
+
+        console.log('[Pet] 悬浮窗初始化完成');
+
         setTimeout(() => {
             showBubble("WordParasite<br>已寄生...");
         }, 800);
 
     </script>
 </body>
+
 </html>
