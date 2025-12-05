@@ -13,6 +13,12 @@
           <text class="empty-hint">试试下面的快捷回复开始聊天吧</text>
         </view>
         
+        <!-- 加载更多按钮 -->
+        <view v-if="canLoadMore" class="load-more-btn" @tap="loadMore">
+          <text class="load-more-icon">⬆</text>
+          <text class="load-more-text">加载更早的消息 ({{ hiddenCount }}条)</text>
+        </view>
+        
         <view 
           v-for="(msg, index) in displayMessages" 
           :key="msg.id"
@@ -94,7 +100,8 @@ export default {
 
   data() {
     return {
-      scrollToView: ''
+      scrollToView: '',
+      showCount: 3  // 默认显示最近3条消息
     };
   },
 
@@ -117,7 +124,21 @@ export default {
     },
     
     displayMessages() {
-      return this.messagesValue;
+      const total = this.messagesValue.length;
+      // 如果消息数少于等于 showCount，全部显示
+      if (total <= this.showCount) {
+        return this.messagesValue;
+      }
+      // 否则只显示最近的 showCount 条
+      return this.messagesValue.slice(total - this.showCount);
+    },
+    
+    canLoadMore() {
+      return this.messagesValue.length > this.showCount;
+    },
+    
+    hiddenCount() {
+      return this.messagesValue.length - this.showCount;
     }
   },
 
@@ -125,17 +146,6 @@ export default {
     this.$nextTick(() => {
       this.scrollToBottom();
     });
-  },
-
-  watch: {
-    messages: {
-      handler() {
-        this.$nextTick(() => {
-          this.scrollToBottom();
-        });
-      },
-      deep: true
-    }
   },
 
   methods: {
@@ -155,11 +165,35 @@ export default {
       this.$emit('quick-reply', replyId);
     },
     
+    loadMore() {
+      // 增加显示数量，一次加载10条
+      this.showCount += 10;
+    },
+    
     scrollToBottom() {
       const lastIndex = this.displayMessages.length - 1;
       if (lastIndex >= 0) {
         this.scrollToView = 'msg-' + lastIndex;
       }
+    }
+  },
+  
+  watch: {
+    messages: {
+      handler(newVal, oldVal) {
+        const newLength = (newVal?.value?.length || newVal?.length || 0);
+        const oldLength = (oldVal?.value?.length || oldVal?.length || 0);
+        
+        // 如果有新消息，重置为显示最近3条（保持简洁）
+        if (newLength > oldLength) {
+          this.showCount = 3;
+        }
+        
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
+      },
+      deep: true
     }
   }
 };
@@ -211,6 +245,29 @@ $accent-color: #00d9ff;
   .empty-hint {
     font-size: 12px;
     opacity: 0.7;
+  }
+}
+
+.load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  margin: 10px auto;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 20px;
+  color: $accent-color;
+  font-size: 12px;
+  max-width: 200px;
+  
+  .load-more-icon {
+    margin-right: 8px;
+    font-size: 14px;
+  }
+  
+  &:active {
+    background: rgba(0, 217, 255, 0.2);
   }
 }
 

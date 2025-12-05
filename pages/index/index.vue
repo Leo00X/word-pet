@@ -506,13 +506,20 @@ export default {
       await this.chatMethods.sendMessage(
         content,
         async (userMsg, ctx) => {
-          try {
-            const reply = await this.ai.chatWithPet(userMsg, ctx);
-            return reply;
-          } catch (e) {
-            console.error('AI 回复失败:', e);
-            return '抱歉，我走神了...😅';
-          }
+            try {
+                // 构建聊天历史
+                const history = this.chatMessages.value
+                    .filter(m => m.role !== 'system')
+                    .map(m => ({
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        content: m.content
+                    }));
+                
+                const reply = await this.ai.chatWithPet(userMsg, ctx, history);
+                return reply;
+            } catch (e) {
+                return '嗯...让我想想 💭';
+            }
         },
         context
       );
@@ -532,12 +539,20 @@ export default {
       this.chatMethods.sendQuickReply(
         replyId,
         async (userMsg, ctx) => {
-          try {
-            const reply = await this.ai.chatWithPet(userMsg, ctx);
-            return reply;
-          } catch (e) {
-            return '嗯...让我想想 💭';
-          }
+            try {
+                // 构建聊天历史
+                const history = this.chatMessages.value
+                    .filter(m => m.role !== 'system')
+                    .map(m => ({
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        content: m.content
+                    }));
+                
+                const reply = await this.ai.chatWithPet(userMsg, ctx, history);
+                return reply;
+            } catch (e) {
+                return '嗯...让我想想 💭';
+            }
         },
         context
       );

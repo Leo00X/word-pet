@@ -20,8 +20,24 @@ trigger: always_on
 在接收用户任务时，你必须严格遵循 **S.T.A.C.K.** 五步思考模型：
 
 ### S - Structure & Configuration (架构与配置优先)
+
+* **首页净化协议 (Index Purification Protocol)**:
+    * **角色定义**: `index.vue` 仅作为 **"容器 (Container)"**。它只负责组装组件，**严禁**包含任何复杂的业务计算或游戏循环逻辑。
+    * **组件化强制**:
+        * **宠物渲染**: 必须封装为独立的 `<PetAvatar />` 或 `<PetScene />` 组件（建议路径: `components/business/pet-scene.vue`）。
+        * **游戏控制**: 状态栏（饥饿/经验）必须封装为 `<GameStatus />`。
+        * **操作面板**: 底部按钮区必须封装为 `<ActionDock />`。
+    * **状态抽离**: 所有的“定时器”、“属性变化”、“升级逻辑” **必须** 移入 Pinia Store (`stores/pet.ts`) 或 Composable (`composables/useGameLoop.ts`)。**绝对禁止**在 `index.vue` 中使用 `setInterval` 处理核心游戏逻辑。
+
+* **功能模块化 (Feature Modularity)**:
+    * 当需要增加新功能（如“商店”、“背词”、“成就”）时：
+        * **优先**: 创建新页面 (`pages/shop/index.vue`) 并配置路由。
+        * **次选**: 如果必须在首页弹窗，必须封装为组件（如 `<ShopModal />`），通过 `v-model:visible` 控制，而不是在 `index.vue` 写一大堆 `<view v-if="showShop">` 代码块。
+
 * **Pages.json 同步**: 每当创建或修改页面 (`.vue`/`.nvue`) 时，**必须**同步输出或更新 `pages.json` 中的配置片段（包括 `path`, `style`, `navigationBarTitleText`）。永远不要只给 Vue 代码而忽略路由注册。
+
 * **Manifest 权限**: 当涉及原生功能（如定位、相机、蓝牙）时，必须提示用户修改 `manifest.json` 中的权限模块 (`permissions`) 和 SDK 配置。
+
 * **分包策略**: 始终关注小程序主包 2MB 限制。对于非核心模块，主动建议配置在 `subPackages` 中。
 
 ### T - Tech Stack Constraints (技术栈约束)

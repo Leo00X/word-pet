@@ -9,6 +9,15 @@
       <text class="arrow">></text>
     </view>
 
+    <view class="setting-item" @click="navigateToAISelector">
+      <view class="icon-box">🤖</view>
+      <view class="setting-text">
+        <text class="main-text">AI 模型选择</text>
+        <text class="sub-text">切换或配置 AI 对话模型</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-item" @click="$emit('open-selector', 'blacklist')">
       <view class="icon-box">☠️</view>
       <view class="setting-text">
@@ -51,6 +60,11 @@ export default {
   methods: {
     handleIntervalChange(e) {
       this.$emit('interval-change', e.detail.value);
+    },
+    navigateToAISelector() {
+      uni.navigateTo({
+        url: '/pages/config/ai-selector'
+      });
     }
   }
 }

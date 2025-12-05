@@ -1,9 +1,9 @@
 /**
  * AI 评论系统 Composable
- * 负责调用 DeepSeek AI 生成宠物评论
+ * 负责调用 AI 生成宠物评论（支持多模型切换）
  */
 import { ref } from 'vue';
-import { chatWithAI } from "@/utils/deepseek.js";
+import { chatWithAI } from "@/utils/aiService.js"; // 使用统一的 AI 服务
 
 export function useAI() {
     // AI 请求冷却时间 (毫秒时间戳)
@@ -29,7 +29,7 @@ export function useAI() {
 
         // 更新上次请求时间
         lastAiReq.value = now;
-        if (addLog) addLog("🤖 正在请求 DeepSeek 评价...");
+        if (addLog) addLog("🤖 正在请求 AI 评价...");
 
         // 2. 构建提示词
         let systemPrompt = "";
@@ -89,9 +89,8 @@ export function useAI() {
 根据用户的学习数据和当前心情，用符合性格的语气与用户对话。`;
 
         try {
-            // 如果有上下文历史，传递给 AI（目前 chatWithAI 不支持，这里预留接口）
-            // 未来可以切换到支持上下文的 AI API
-            const reply = await chatWithAI(userMessage, systemPrompt);
+            // 传递历史消息给 AI（现在已支持）
+            const reply = await chatWithAI(userMessage, systemPrompt, history);
             return reply;
         } catch (error) {
             console.error('Chat AI Error:', error);
