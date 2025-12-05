@@ -242,6 +242,7 @@ $text-dim: #6b7280;
 .messages-container {
   min-height: 100%;
   padding-bottom: 10px;
+  padding-right: 8px;
 }
 
 // 空状态

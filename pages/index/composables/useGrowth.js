@@ -210,16 +210,17 @@ export function useGrowth() {
 
     /**
      * 互动（点击宠物）
-     * @returns {number} 亲密度增加量
+     * @returns {{mood: number, bond: number}} 增加量
      */
     const interact = () => {
-        const bondIncrease = 1;
-        const moodIncrease = 2;
+        const bondIncrease = 3;
+        const moodIncrease = 5;
 
         changeBond(bondIncrease);
         changeMood(moodIncrease);
+        saveData();
 
-        return bondIncrease;
+        return { mood: moodIncrease, bond: bondIncrease };
     };
 
     /**

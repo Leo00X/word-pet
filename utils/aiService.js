@@ -92,6 +92,57 @@ export function chatWithAI(userMessage, systemPrompt = "你是一个毒舌的电
 }
 
 /**
+ * 使用指定模型调用 AI（用于日记等需要特定模型的场景）
+ * @param {String} modelType 模型类型: 'gemini-pro', 'gemini-flash', 'deepseek' 等
+ * @param {String} userMessage 用户消息
+ * @param {String} systemPrompt 系统提示词
+ * @returns {Promise<String>} AI 回复
+ */
+export function chatWithSpecificModel(modelType, userMessage, systemPrompt) {
+    const config = getSecureStorage('ai_config');
+
+    if (!config) {
+        return Promise.reject({ error: { message: '未配置 AI 模型' } });
+    }
+
+    // 查找指定类型的模型
+    let targetModel = null;
+
+    // 优先在预置模型中查找 Gemini Pro
+    if (modelType === 'gemini-pro') {
+        targetModel = config.presetModels?.find(m =>
+            m.id === 'gemini-pro' || m.name?.includes('Pro')
+        );
+    } else if (modelType === 'gemini-flash') {
+        targetModel = config.presetModels?.find(m =>
+            m.id?.includes('flash') || m.name?.includes('Flash')
+        );
+    } else {
+        targetModel = config.presetModels?.find(m => m.type === modelType);
+    }
+
+    // 如果没找到，fallback 到当前模型
+    if (!targetModel) {
+        console.warn(`[AI Service] 未找到模型 ${modelType}，使用当前模型`);
+        return chatWithAI(userMessage, systemPrompt);
+    }
+
+    if (!targetModel.apiKey) {
+        return Promise.reject({ error: { message: `${targetModel.name} 未配置 API Key` } });
+    }
+
+    const AdapterClass = ADAPTER_MAP[targetModel.type];
+    if (!AdapterClass) {
+        return Promise.reject({ error: { message: `不支持的模型类型: ${targetModel.type}` } });
+    }
+
+    const adapter = new AdapterClass(targetModel);
+    console.log(`[AI Service] 日记专用模型: ${targetModel.name}`);
+
+    return adapter.chat(userMessage, systemPrompt, []);
+}
+
+/**
  * 导出配置获取函数供其他模块使用
  */
 export { getCurrentAIConfig };

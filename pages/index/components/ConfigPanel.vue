@@ -27,6 +27,15 @@
       <text class="arrow">></text>
     </view>
 
+    <view class="setting-item" @click="showPetSelector">
+      <view class="icon-box">🐾</view>
+      <view class="setting-text">
+        <text class="main-text">宠物类型</text>
+        <text class="sub-text">选择你喜欢的宠物形象</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-block">
       <text class="block-title">扫描频率 ({{ (monitorIntervalTime / 1000).toFixed(0) }} 秒/次)</text>
       <slider 
@@ -44,6 +53,10 @@
 
     <button class="game-btn terminal-btn" @click="$emit('open-terminal')">
       <text>🖥️ 进入监控终端</text>
+    </button>
+    
+    <button class="game-btn clear-btn" @click="confirmClearChat">
+      <text>🗑️ 清除聊天记录</text>
     </button>
   </view>
 </template>
@@ -64,6 +77,39 @@ export default {
     navigateToAISelector() {
       uni.navigateTo({
         url: '/pages/config/ai-selector'
+      });
+    },
+    confirmClearChat() {
+      uni.showModal({
+        title: '确认清除',
+        content: '将删除所有聊天记录，此操作不可恢复',
+        confirmColor: '#ff4757',
+        success: (res) => {
+          if (res.confirm) {
+            this.$emit('clear-chat');
+            uni.showToast({ title: '已清除', icon: 'success' });
+          }
+        }
+      });
+    },
+    showPetSelector() {
+      const pets = [
+        { id: 'ghost', name: '👻 幽灵', desc: '神秘的电子幽灵' },
+        { id: 'dog', name: '🐕 中华田园犬', desc: '忠诚的守护犬' },
+        { id: 'cockatiel', name: '🦜 玄凤鹦鹉', desc: '活泼的小鸟' },
+        { id: 'monk_parakeet', name: '🦜 和尚鹦鹉', desc: '聪明的鹦鹉' }
+      ];
+      
+      uni.showActionSheet({
+        itemList: pets.map(p => p.name),
+        success: (res) => {
+          const selected = pets[res.tapIndex];
+          this.$emit('change-pet-type', selected.id);
+          uni.showToast({ 
+            title: `已切换为${selected.name}`, 
+            icon: 'none' 
+          });
+        }
       });
     }
   }
@@ -136,5 +182,11 @@ $text-dim: #747d8c;
   border: 1px solid #57606f; 
   margin-top: 20px; 
   font-size: 12px; 
+}
+
+.clear-btn {
+  background: #ff4757;
+  margin-top: 12px;
+  font-size: 12px;
 }
 </style>

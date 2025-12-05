@@ -26,6 +26,13 @@
       {{ isMonitoring ? '⏹ 停止全域监控' : '👁 开启全域监控' }}
     </button>
 
+    <button 
+      class="game-btn mid-btn btn-gold"
+      @click="$emit('open-achievements')"
+    >
+      🏆 成就系统 ({{ achievementProgress }}%)
+    </button>
+
     <view class="log-card">
       <view class="log-header-row">
         <text class="panel-title">📝 最近动态</text>
@@ -69,6 +76,10 @@ export default {
     growthLogs: {
       type: Array,
       default: () => []
+    },
+    achievementProgress: {
+      type: Number,
+      default: 0
     }
   },
   methods: {
@@ -222,5 +233,11 @@ $text-dim: #747d8c;
   text-align: center; 
   font-size: 10px; 
   padding: 10px; 
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%) !important;
+  color: #1a1a2e !important;
+  font-weight: bold;
 }
 </style>

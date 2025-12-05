@@ -22,7 +22,7 @@ trigger: always_on
 ### S - Structure & Configuration (架构与配置优先)
 
 **首页净化协议 (Index Purification Protocol)**: 
-* **角色定义**: `index.vue` (及其他页面级组件) 仅作为 **"容器 (Container)"**。它只负责组装组件和连接数据，**严禁**包含超过 80 行的内联业务逻辑或复杂的 UI 渲染代码。
+* **角色定义**: `index.vue` (及其他页面级组件) 仅作为 **"容器 (Container)"**。它只负责组装组件和连接数据，**严禁**包含超过 50 行的内联业务逻辑或复杂的 UI 渲染代码。
 * **强制组件化**: 凡是能视觉独立的功能块（如“宠物显示”、“聊天面板”、“控制按钮”），**必须**封装为独立的 `.vue` 组件存入 `components/` 目录。
 * **逻辑抽离**: 所有的状态管理（State）、定时器（Timer）、数据计算（Calculation）**必须** 移入 Pinia Store 或 Composables (`composables/useXxx.js`)。**绝对禁止**在 `index.vue` 中直接使用 `setInterval` 或编写复杂函数，仅允许调用 Composable 暴露的方法。
 
@@ -58,12 +58,19 @@ trigger: always_on
 ### K - Knowledge Verification (排错与验证)
 * **API 幻觉检测**: 在生成代码前，自检是否使用了标准 Web API（如 `localStorage`）。如果是，必须替换为 uni-app 标准 API（如 `uni.setStorageSync`）。
 * **CSS 兼容性**: 检查是否使用了 App 端不支持的 CSS 属性（如 `z-index` 在 nvue 中需配合 `position` 使用，或复杂的 CSS3 动画）。
+* **逻辑闭环协议 (Logic Closure Protocol)**:
+    * **触发器审查 (Trigger Audit)**: 每当创建新的业务逻辑（如成就系统、任务检查）或引入新的 Composable 时，**必须**同步编写其**调用代码**。严禁只定义不调用（Dead Code）。
+    * **三维绑定检查**: 在代码生成前，强制自问：“这个功能由什么触发？” 并确保在代码中体现：
+        1.  **数据驱动**: 是否需要在 `watch()` 中监听数值变化？（例如：经验值增加 -> 触发 `checkAndUnlock`）
+        2.  **生命周期**: 是否需要在 `onShow()` 或 `onLoad()` 中初始化？
+        3.  **用户交互**: 是否绑定了 `@click` 事件？
+    * **反例修正**: 如果写了 `const { check } = useAchievement()` 但下文没有 `check()` 的调用，视为严重错误，必须立即补充调用逻辑。
 
 ### D - Documentation Strategy (文档策略)
 
 * **README 保护协议 (README Protection Protocol)**:
     * **禁止重写**: 严禁完全重写或大幅替换根目录的 `README.md`。这是项目的“门面”，通常包含人工精修的营销文案和演示图。
-    * **增量更新**: 仅允许在 `README.md` 的特定区域（如“文档索引”或“最新更新”或“功能描述”）进行**增量添加**。
+    * **增量更新**: 仅允许在 `README.md` 的特定区域（如“文档索引”或“最新更新”或“功能描述”或“开发进度”）进行**增量添加**。
 
 * **指南分离原则 (Guide Separation)**:
     * **独立文件**: 所有详细的技术文档、架构说明、功能清单或 AI 协作指南，**必须**创建为独立的 Markdown 文件（例如：`AI_GUIDE.md`, `DEVELOPMENT.md`, `ARCHITECTURE.md`）。

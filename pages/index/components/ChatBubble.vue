@@ -137,6 +137,7 @@ $text-dim: #8892a6;
 .chat-bubble {
   display: flex;
   margin-bottom: 16px;
+  padding-right: 5px;  // 确保右侧头像不被裁剪
   animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -223,7 +224,8 @@ $text-dim: #8892a6;
 // ========== 消息主体 ==========
 .bubble-main {
   flex: 1;
-  max-width: 78%;
+  max-width: 60%;  // 进一步减小，确保头像完整显示
+  min-width: 0;    // 防止flex溢出
 }
 
 .bubble-header {
@@ -281,7 +283,8 @@ $text-dim: #8892a6;
   
   .bubble-avatar {
     margin-right: 0;
-    margin-left: 10px;
+    margin-left: 8px;  // 减小间距
+    flex-shrink: 0;    // 防止头像被压缩
   }
   
   .bubble-main {

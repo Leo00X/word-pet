@@ -3,7 +3,7 @@
  * 负责调用 AI 生成宠物评论（支持多模型切换）
  */
 import { ref } from 'vue';
-import { chatWithAI } from "@/utils/aiService.js"; // 使用统一的 AI 服务
+import { chatWithAI, chatWithSpecificModel } from "@/utils/aiService.js"; // 使用统一的 AI 服务
 
 export function useAI() {
     // AI 请求冷却时间 (毫秒时间戳)
@@ -15,8 +15,9 @@ export function useAI() {
      * @param {string} type - 评论类型 'good' | 'bad'
      * @param {Function} sendToFloat - 发送消息到悬浮窗的回调函数
      * @param {Function} addLog - 添加日志的回调函数
+     * @param {Object} context - 上下文数据 { level, mood, todayStudyTime, todayIdleTime }
      */
-    const triggerPetComment = async (appName, type, sendToFloat, addLog) => {
+    const triggerPetComment = async (appName, type, sendToFloat, addLog, context = {}) => {
         // 1. 冷却检查 (60秒内不重复请求 AI，省钱且防刷屏)
         const now = Date.now();
         if (now - lastAiReq.value < 60000) {
@@ -31,15 +32,22 @@ export function useAI() {
         lastAiReq.value = now;
         if (addLog) addLog("🤖 正在请求 AI 评价...");
 
-        // 2. 构建提示词
+        // 2. 构建提示词（包含用户数据）
+        const studyTime = context.todayStudyTime || 0;
+        const idleTime = context.todayIdleTime || 0;
+        const level = context.level || 1;
+        const mood = context.mood || 50;
+
         let systemPrompt = "";
         let userPrompt = "";
 
         if (type === 'bad') {
-            systemPrompt = "你是一个寄生在手机里的毒舌外星生物。用户正在浪费时间玩娱乐软件，请用嘲讽、刻薄、阴阳怪气的语气骂醒他。字数30字以内。不要只有标点符号。";
+            systemPrompt = `你是一个寄生在手机里的毒舌外星生物。用户正在浪费时间玩娱乐软件，请用嘲讽、刻薄、阴阳怪气的语气骂醒他。字数30字以内。不要只有标点符号。
+当前数据：用户今日学习${studyTime}分钟，摸鱼${idleTime}分钟，宠物等级Lv.${level}。`;
             userPrompt = `我正在玩《${appName}》，我已经玩了很久了，快骂我。`;
         } else {
-            systemPrompt = "你是一个傲娇的电子宠物。用户正在学习，请用勉为其难但其实在鼓励的语气表扬他。字数30字以内。";
+            systemPrompt = `你是一个傲娇的电子宠物。用户正在学习，请用勉为其难但其实在鼓励的语气表扬他。字数30字以内。
+当前数据：用户今日学习${studyTime}分钟，摸鱼${idleTime}分钟，宠物等级Lv.${level}，心情${mood}。`;
             userPrompt = `我正在使用学习软件《${appName}》。`;
         }
 
@@ -105,9 +113,41 @@ export function useAI() {
         }
     };
 
+    /**
+     * 生成宠物日记（使用 Gemini Pro）
+     * @param {string} prompt - 日记生成提示词
+     * @returns {Promise<string>} 生成的日记内容
+     */
+    const generateDiary = async (prompt) => {
+        console.log('[Diary] 准备调用 Gemini Pro 生成日记...');
+
+        const systemPrompt = `你是一只名叫WordParasite的傲娇电子宠物，正在写今日日记。
+请严格按照用户给的数据来写日记，用第一人称，语气可爱但偶尔傲娇。
+日记长度控制在100-150字之间。`;
+
+        try {
+            // 使用 Gemini Pro 模型
+            const reply = await chatWithSpecificModel('gemini-pro', prompt, systemPrompt);
+            console.log('[Diary] Gemini Pro 生成成功');
+            return reply;
+        } catch (error) {
+            console.error('[Diary] Gemini Pro 失败，尝试默认模型:', error);
+            // Fallback 到默认模型
+            try {
+                const fallbackReply = await chatWithAI(prompt, systemPrompt);
+                return fallbackReply;
+            } catch (fallbackError) {
+                console.error('[Diary] 所有模型失败:', fallbackError);
+                throw fallbackError;
+            }
+        }
+    };
+
     return {
         lastAiReq,
         triggerPetComment,
-        chatWithPet
+        chatWithPet,
+        generateDiary
     };
 }
+

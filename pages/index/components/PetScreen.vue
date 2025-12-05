@@ -1,58 +1,78 @@
 <template>
   <view class="main-screen">
     <view class="screen-content" :class="{ 'glitch-effect': isMonitoring }">
-      <!-- 宠物头像 - 使用 emoji -->
-      <text 
-        class="pet-avatar-emoji" 
-        :class="{ 'floating': isPetShown }"
-      >
-        {{ petEmoji }}
-      </text>
-      
-      <view class="pixel-bubble" v-if="isPetShown">
-        <text>{{ petMessage }}</text>
+      <!-- 宠物区域 (居中) -->
+      <view class="pet-area">
+        <text 
+          class="pet-avatar-emoji" 
+          :class="{ 'floating': isPetShown }"
+          @tap="handleInteract"
+        >
+          {{ petEmoji }}
+        </text>
+        
+        <view class="interact-hint" v-if="!isPetShown">
+          <text>👆 点击抚摸</text>
+        </view>
+        
+        <view class="pixel-bubble" v-if="isPetShown && petMessage">
+          <text>{{ petMessage }}</text>
+        </view>
       </view>
 
-      <view class="stats-overlay">
+      <!-- 属性条区域 (底部) -->
+      <view class="stats-bottom">
         <view class="stat-row">
-          <text class="stat-label">❤️ 心情</text>
-          <progress 
-            class="stat-bar" 
-            :percent="mood" 
-            :activeColor="moodColor" 
-            backgroundColor="#2f3542" 
-            stroke-width="6" 
-          />
+          <text class="stat-label">❤️</text>
+          <view class="stat-bar-wrap">
+            <progress 
+              class="stat-bar" 
+              :percent="mood" 
+              :activeColor="moodColor" 
+              backgroundColor="#2f3542" 
+              stroke-width="8" 
+            />
+          </view>
+          <text class="stat-value" :style="{color: moodColor}">{{ mood }}</text>
         </view>
         <view class="stat-row">
-          <text class="stat-label">⭐ 经验</text>
-          <progress 
-            class="stat-bar" 
-            :percent="expPercent" 
-            activeColor="#2ed573" 
-            backgroundColor="#2f3542" 
-            stroke-width="6" 
-          />
+          <text class="stat-label">⭐</text>
+          <view class="stat-bar-wrap">
+            <progress 
+              class="stat-bar" 
+              :percent="expPercent" 
+              activeColor="#2ed573" 
+              backgroundColor="#2f3542" 
+              stroke-width="8" 
+            />
+          </view>
+          <text class="stat-value" style="color:#2ed573">{{ expPercent }}%</text>
         </view>
         <view class="stat-row">
-          <text class="stat-label">🍖 饥饿</text>
-          <progress 
-            class="stat-bar" 
-            :percent="hunger" 
-            activeColor="#ffaa00" 
-            backgroundColor="#2f3542" 
-            stroke-width="6" 
-          />
+          <text class="stat-label">🍖</text>
+          <view class="stat-bar-wrap">
+            <progress 
+              class="stat-bar" 
+              :percent="hunger" 
+              activeColor="#ffaa00" 
+              backgroundColor="#2f3542" 
+              stroke-width="8" 
+            />
+          </view>
+          <text class="stat-value" style="color:#ffaa00">{{ hunger }}</text>
         </view>
         <view class="stat-row">
-          <text class="stat-label">💕 亲密</text>
-          <progress 
-            class="stat-bar" 
-            :percent="bond" 
-            activeColor="#ff66cc" 
-            backgroundColor="#2f3542" 
-            stroke-width="6" 
-          />
+          <text class="stat-label">💕</text>
+          <view class="stat-bar-wrap">
+            <progress 
+              class="stat-bar" 
+              :percent="bond" 
+              activeColor="#ff66cc" 
+              backgroundColor="#2f3542" 
+              stroke-width="8" 
+            />
+          </view>
+          <text class="stat-value" style="color:#ff66cc">{{ bond }}</text>
         </view>
       </view>
     </view>
@@ -73,7 +93,7 @@ export default {
     },
     petMessage: {
       type: String,
-      default: '等待指令...'
+      default: ''
     },
     mood: {
       type: Number,
@@ -98,17 +118,22 @@ export default {
   },
   
   computed: {
-    // 经验百分比 (0-100)
     expPercent() {
       return Math.min(100, this.exp);
     },
     
-    // 心情颜色
     moodColor() {
-      if (this.mood > 80) return '#00ff88'; // 绿色 - 快乐
-      if (this.mood > 50) return '#ffaa00'; // 橙色 - 一般
-      if (this.mood > 20) return '#ff4757'; // 红色 - 郁闷
-      return '#ff3366'; // 深红 - 愤怒
+      if (this.mood > 80) return '#00ff88';
+      if (this.mood > 50) return '#ffaa00';
+      if (this.mood > 20) return '#ff4757';
+      return '#ff3366';
+    }
+  },
+  
+  methods: {
+    handleInteract() {
+      this.$emit('interact');
+      uni.vibrateShort(); // 短震动反馈
     }
   }
 }
@@ -119,30 +144,50 @@ export default {
 .main-screen {
   background: #000;
   border: 4px solid #2f3542;
-  border-radius: 10px;
-  height: 260px;
+  border-radius: 12px;
+  height: 280px;
   position: relative;
   overflow: hidden;
-  margin-bottom: 25px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  margin-bottom: 20px;
+  box-shadow: 
+    0 0 20px rgba(0,0,0,0.5),
+    inset 0 0 30px rgba(0,217,255,0.05);
 }
 
 .screen-content {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: radial-gradient(circle at 50% 30%, #1a2744 0%, #0a0f1a 70%, #000 100%);
+  position: relative;
+}
+
+/* 宠物区域 - 居中 */
+.pet-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle, #2f3640 0%, #000 90%);
+  padding-top: 10px;
 }
 
 .pet-avatar-emoji {
-  font-size: 80px;
+  font-size: 100px;
   line-height: 1;
   z-index: 10;
   transition: all 0.5s ease;
   display: block;
   text-align: center;
+  filter: drop-shadow(0 0 20px rgba(0,217,255,0.3));
+  cursor: pointer;
+}
+
+.interact-hint {
+  font-size: 12px;
+  color: #747d8c;
+  margin-top: 10px;
+  opacity: 0.7;
 }
 
 .floating { 
@@ -151,55 +196,104 @@ export default {
 
 @keyframes float { 
   0%, 100% { transform: translateY(0); } 
-  50% { transform: translateY(-10px); } 
+  50% { transform: translateY(-12px); } 
 }
 
 .pixel-bubble {
-  background: #fff;
-  color: #000;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  margin-top: 10px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240,240,240,0.9));
+  color: #1a1a2e;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 12px;
   position: relative;
-  max-width: 80%;
+  max-width: 85%;
   text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  border: 1px solid rgba(0,217,255,0.2);
 }
 
 .pixel-bubble::after {
   content: ''; 
   position: absolute; 
-  top: -5px; 
+  top: -8px; 
   left: 50%; 
   transform: translateX(-50%);
-  border-width: 0 5px 5px; 
+  border-width: 0 8px 8px; 
   border-style: solid; 
-  border-color: transparent transparent #fff;
+  border-color: transparent transparent rgba(255,255,255,0.95);
 }
 
-.stats-overlay {
-  position: absolute;
-  top: 10px; 
-  left: 10px; 
-  right: 10px;
+/* 属性条 - 底部 */
+.stats-bottom {
+  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.9) 100%);
+  padding: 10px 15px 12px;
 }
 
 .stat-row {
   display: flex; 
   align-items: center; 
   gap: 8px; 
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+}
+
+.stat-row:last-child {
+  margin-bottom: 0;
 }
 
 .stat-label { 
-  font-size: 10px; 
-  font-weight: bold; 
-  width: 30px; 
+  font-size: 14px; 
+  width: 22px;
+  text-align: center;
+}
+
+.stat-bar-wrap {
+  flex: 1;
+  background: rgba(47, 53, 66, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  height: 10px;
 }
 
 .stat-bar { 
-  flex: 1; 
-  border-radius: 4px; 
-  overflow: hidden; 
+  width: 100%;
+  border-radius: 6px; 
+}
+
+.stat-value {
+  font-size: 11px;
+  font-weight: bold;
+  width: 32px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* 监控中的毛玻璃效果 */
+.glitch-effect {
+  animation: scan-lines 0.1s linear infinite;
+}
+
+@keyframes scan-lines {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+.glitch-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 217, 255, 0.03) 2px,
+    rgba(0, 217, 255, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
 }
 </style>

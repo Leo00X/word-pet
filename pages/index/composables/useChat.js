@@ -18,7 +18,7 @@ export function useChat() {
     const loadMessages = () => {
         try {
             const stored = uni.getStorageSync('chat_messages') || [];
-            messages.value = stored.slice(0, 100);
+            messages.value = stored.slice(0, 500);
             console.log('[useChat] 加载消息, 数量:', messages.value.length);
         } catch (e) {
             console.error('[useChat] 加载失败:', e);
@@ -28,7 +28,7 @@ export function useChat() {
 
     const saveMessages = () => {
         try {
-            uni.setStorageSync('chat_messages', messages.value.slice(0, 100));
+            uni.setStorageSync('chat_messages', messages.value.slice(0, 500));
         } catch (e) {
             console.error('[useChat] 保存失败:', e);
         }
@@ -48,9 +48,9 @@ export function useChat() {
         // 使用 push 添加到末尾，保持时间顺序
         messages.value.push(message);
 
-        // 限制为最近 100 条
-        if (messages.value.length > 100) {
-            messages.value = messages.value.slice(-100);
+        // 限制为最近 500 条
+        if (messages.value.length > 500) {
+            messages.value = messages.value.slice(-500);
         }
 
         saveMessages();
