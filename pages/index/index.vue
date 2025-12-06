@@ -264,8 +264,10 @@ floatWindow = useFloatWindow({
 });
 
 // 1.7.1 [BUG#101 修复] 宠物互动系统（集成AI响应）
+// [BUG#NEW-1 修复] 传入共享的 growth 实例，避免数据不一致
 petInteraction = usePetInteraction({
     floatWindowInstance: floatWindow.floatWinInstance,
+    growthInstance: growth,  // 注入共享实例
     onSendToFloat: (type, msg) => floatWindow.sendMessageToFloat(type, msg),
     addLog: (msg) => growthLog.addGrowthLog(msg, 0)
 });
@@ -321,7 +323,7 @@ const userMessageCount = computed(() => {
         const msgDate = new Date(m.timestamp).toDateString();
         return msgDate === today;
     });
-    console.log('[DiaryDebug] 今日用户消息:', todayMsgs.length, '总消息:', msgs.length);
+    // 调试日志已移除
     return todayMsgs.length;
 });
 
@@ -587,7 +589,7 @@ const openHistory = () => {
  * 处理用户输入更新
  */
 const handleUserInputUpdate = (value) => {
-    console.log('[index.vue] handleUserInputUpdate', value);
+    // handleUserInputUpdate 被调用
     if (chat.userInput) {
         chat.userInput.value = value;
     }

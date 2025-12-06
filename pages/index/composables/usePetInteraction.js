@@ -21,10 +21,16 @@ import { debugLog } from '@/utils/debugLog.js';
 
 // ========== Composable ==========
 export function usePetInteraction(options = {}) {
-    const { floatWindowInstance, onSendToFloat, addLog } = options;
+    const {
+        floatWindowInstance,
+        onSendToFloat,
+        addLog,
+        // [BUG#NEW-1 修复] 接受外部传入的 growth 实例，避免创建独立实例导致数据不一致
+        growthInstance = null
+    } = options;
 
-    // 引入子模块
-    const growth = useGrowth();
+    // [BUG#NEW-1 修复] 优先使用注入的实例，只有未提供时才创建新实例
+    const growth = growthInstance || useGrowth();
     const animations = useAnimations({ floatWindowInstance });
     const memorySystem = useMemory();  // [Phase 3] 记忆系统
 

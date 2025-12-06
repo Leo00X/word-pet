@@ -19,7 +19,7 @@ export function useChat() {
         try {
             const stored = uni.getStorageSync('chat_messages') || [];
             messages.value = stored.slice(0, 500);
-            console.log('[useChat] 加载消息, 数量:', messages.value.length);
+            // 加载完成，无需输出日志
         } catch (e) {
             console.error('[useChat] 加载失败:', e);
             messages.value = [];
@@ -113,9 +113,9 @@ export function useChat() {
     };
 
     const getContextMessages = (limit = 10) => {
+        // [BUG#NEW-4 修复] 移除 .reverse()，保持时间正序（AI期望最早的在前面）
         return messages.value
             .slice(-limit)
-            .reverse()
             .filter(m => m.role !== 'system')
             .map(m => ({
                 role: m.role === 'user' ? 'user' : 'assistant',
@@ -126,7 +126,7 @@ export function useChat() {
     const messageCount = computed(() => messages.value.length);
     const hasMessages = computed(() => messages.value.length > 0);
 
-    console.log('[useChat] 初始化完成, userInput ref:', userInput);
+    // 初始化完成
 
     return {
         messages,
