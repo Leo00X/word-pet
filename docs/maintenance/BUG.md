@@ -42,11 +42,11 @@
 
 | 优先级 | 未修复 | 修复中 | 已修复待测试 |
 |--------|--------|--------|--------------|
-| 🔴 高 | 1 | 1 | 5 |
+| 🔴 高 | 0 | 1 | 6 |
 | 🟡 中 | 1 | 0 | 1 |
 | 🟢 低 | 2 | 0 | 1 |
 
-**总计**: 12 个活跃问题 (含 #107 新发现)
+**总计**: 12 个活跃问题 (含 #107 已修复)
 
 ---
 
@@ -64,7 +64,8 @@
 ### #107 【日记系统】历史日记无法访问，日记数据正常保存但无查看功能
 **发现时间**: 2025-12-07  
 **严重程度**: 🔴 高  
-**状态**: 未修复  
+**状态**: ✅ 已修复，待测试  
+**修复时间**: 2025-12-07
 **测试设备**: Android真机
 
 **问题描述**:  
@@ -88,16 +89,16 @@
    - 日记数据保存在 `pet_diaries`，但没有对应的展示页面
 
 **修复方案**:  
-创建 `diary-history.vue` 页面用于显示日记历史：
-1. 新建 `pages/diary/diary-history.vue`
-2. 读取 `pet_diaries` storage
-3. 展示日记列表（日期、部分内容、点击查看详情）
-4. 或者修改现有 `log-history.vue` 支持日记查看
+✅ 已创建 `pages/diary/diary-history.vue` 页面：
+1. ✅ 读取 `pet_diaries` storage
+2. ✅ 展示日记列表（日期、预览、元数据）
+3. ✅ 支持点击查看完整日记内容
+4. ✅ 支持清空所有日记
 
 **相关文件**:
-- `pages/index/components/DiaryPanel.vue` (L196-227: 保存逻辑正常)
-- `pages/log/log-history.vue` (显示成长日志，非日记)
-- ❌ `pages/diary/diary-history.vue` (不存在)
+- `pages/index/components/DiaryPanel.vue` (L196-227: 保存逻辑)
+- `pages/diary/diary-history.vue` (✅ 新建，236行)
+- `pages.json` (✅ 已添加路由)
 
 ---
 

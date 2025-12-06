@@ -28,6 +28,12 @@
 			"style": {
 				"navigationBarStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/diary/diary-history",
+			"style": {
+				"navigationBarStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {
