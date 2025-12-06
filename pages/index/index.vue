@@ -36,7 +36,7 @@
         @toggle-pet="handleTogglePet"
         @toggle-monitor="handleToggleMonitor"
         @open-history="openHistory"
-        @open-achievements="showAchievementModal = true"
+        @open-achievements="openModal('achievement')"
       />
 
       <!-- 配置面板 -->
@@ -48,9 +48,9 @@
         @open-terminal="terminal.showTerminal.value = true"
         @clear-chat="chat.clearMessages"
         @change-pet-type="handleChangePetType"
-        @open-skin-selector="showSkinModal = true"
-        @open-skin-market="showMarketModal = true"
-        @open-backup="showBackupModal = true"
+        @open-skin-selector="openModal('skin')"
+        @open-skin-market="openModal('market')"
+        @open-backup="openModal('backup')"
         @dev-refresh="growth.loadData()"
       />
       
@@ -100,11 +100,11 @@
     />
 
     <!-- 成就弹窗 -->
-    <view class="modal-overlay" v-if="showAchievementModal" @tap="showAchievementModal = false">
+    <view class="modal-overlay" v-if="showAchievementModal" @tap="closeModal('achievement')">
       <view class="modal-content achievement-modal" @tap.stop>
         <view class="modal-header">
           <text class="modal-title">🏆 成就系统</text>
-          <text class="modal-close" @tap="showAchievementModal = false">✕</text>
+          <text class="modal-close" @tap="closeModal('achievement')">✕</text>
         </view>
         <AchievementPanel 
           :achievements="achievements.allAchievements.value"
@@ -114,11 +114,11 @@
     </view>
 
     <!-- 皮肤选择弹窗 -->
-    <view class="modal-overlay" v-if="showSkinModal" @tap="showSkinModal = false">
+    <view class="modal-overlay" v-if="showSkinModal" @tap="closeModal('skin')">
       <view class="modal-content skin-modal" @tap.stop>
         <view class="modal-header">
           <text class="modal-title">🎨 皮肤管理</text>
-          <text class="modal-close" @tap="showSkinModal = false">✕</text>
+          <text class="modal-close" @tap="closeModal('skin')">✕</text>
         </view>
         <SkinSelector 
           :currentSkin="skins.currentSkin.value"
@@ -137,16 +137,16 @@
     <!-- 猜单词小游戏 -->
     <WordGuessGame 
       :visible="showGameModal"
-      @close="showGameModal = false"
+      @close="closeModal('game')"
       @game-end="handleGameEnd"
     />
 
     <!-- 皮肤商城弹窗 -->
-    <view class="modal-overlay" v-if="showMarketModal" @tap="showMarketModal = false">
+    <view class="modal-overlay" v-if="showMarketModal" @tap="closeModal('market')">
       <view class="modal-content market-modal" @tap.stop>
         <view class="modal-header">
           <text class="modal-title">🛒 皮肤商城</text>
-          <text class="modal-close" @tap="showMarketModal = false">✕</text>
+          <text class="modal-close" @tap="closeModal('market')">✕</text>
         </view>
         <SkinMarket 
           :coins="growth.coins.value"
@@ -157,11 +157,11 @@
     </view>
 
     <!-- 数据备份弹窗 -->
-    <view class="modal-overlay" v-if="showBackupModal" @tap="showBackupModal = false">
+    <view class="modal-overlay" v-if="showBackupModal" @tap="closeModal('backup')">
       <view class="modal-content backup-modal" @tap.stop>
         <view class="modal-header">
           <text class="modal-title">☁️ 数据备份</text>
-          <text class="modal-close" @tap="showBackupModal = false">✕</text>
+          <text class="modal-close" @tap="closeModal('backup')">✕</text>
         </view>
         <BackupPanel :cloudSync="cloudSync" />
       </view>
