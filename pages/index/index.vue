@@ -215,6 +215,8 @@ import {
 } from './composables/useGreeting.js';
 import { useAchievements } from './composables/useAchievements.js';
 import { usePetInteraction } from './composables/usePetInteraction.js';
+import { usePageLifecycle } from './composables/usePageLifecycle.js';
+import { useChatHandlers } from './composables/useChatHandlers.js';
 import { ref, computed, watch } from 'vue';
 
 // ========== 1. 初始化 Composables ==========
@@ -323,120 +325,39 @@ const userMessageCount = computed(() => {
         const msgDate = new Date(m.timestamp).toDateString();
         return msgDate === today;
     });
-    // 调试日志已移除
     return todayMsgs.length;
+});
+
+// ========== 2.1 提取的 Composables ==========
+
+// 页面生命周期管理
+const lifecycle = usePageLifecycle({
+    permissions,
+    floatWindow,
+    growth,
+    growthLog,
+    chat,
+    achievements,
+    getChatCount: () => userMessageCount.value
+});
+
+// 聊天事件处理
+const chatHandlers = useChatHandlers({
+    chat,
+    ai,
+    growth,
+    onCheckAchievements: () => lifecycle.checkAchievements()
 });
 
 // ========== 3. 生命周期 ==========
 
-// 页面显示时
+// 页面显示时（逻辑已移至 usePageLifecycle）
 onShow(() => {
-    logUserAction('页面显示', { 
-        isPetShown: floatWindow.isPetShown.value, 
-        isMonitoring: monitor.isMonitoring.value 
-    });
-    
-    // 检查权限状态
-    permissions.checkPermissions();
-    
-    // 恢复悬浮窗实例(如果需要)
-    floatWindow.reinitInstance();
-    
-    // 加载成长数据
-    growth.loadData();
-    
-    // 检查是否跨天，重置每日统计
-    checkAndResetDailyStats();
-    
-    // 加载成长日志
-    growthLog.loadCachedData();
-    
-    // 加载聊天历史
-    chat.loadMessages();
-    
-    // 加载成就数据
-    achievements.loadData();
-    
-    // 每日首次打开问候
-    checkDailyGreeting();
-    
-    // 延迟检查成就（等数据加载完成）
-    setTimeout(() => checkAchievements(), 500);
+    lifecycle.initializePage();
 });
 
-/**
- * 检查并发送每日问候（逻辑已抽离到 useGreeting.js）
- */
-const checkDailyGreeting = () => {
-    if (!shouldShowDailyGreeting()) return;
-    
-    markDailyGreetingShown();
-    
-    setTimeout(() => {
-        const greeting = getTimeBasedGreeting();
-        
-        // 添加到聊天记录
-        chat.addMessage('pet', greeting, { type: 'greeting', emotion: 'happy' });
-        
-        // 处理悬浮窗
-        if (floatWindow.isPetShown.value) {
-            floatWindow.sendMessageToFloat(1, greeting);
-        } else {
-            savePendingGreeting(greeting);
-        }
-    }, 1500);
-};
-
-/**
- * 检查并解锁成就
- */
-const checkAchievements = () => {
-    // 收集当前统计数据
-    const stats = {
-        totalStudyTime: growth.totalStudyTime.value,
-        todayStudyTime: growth.todayStudyTime.value,
-        totalIdleTime: growth.totalIdleTime.value,
-        chatCount: userMessageCount.value,
-        petLevel: growth.petLevel.value
-    };
-    
-    // 检查并解锁成就
-    const newlyUnlocked = achievements.checkAndUnlock(stats);
-    
-    // 如果有新解锁的成就，显示提示
-    if (newlyUnlocked.length > 0) {
-        newlyUnlocked.forEach(achievement => {
-            uni.showToast({
-                title: `🏆 解锁: ${achievement.name}`,
-                icon: 'none',
-                duration: 2500
-            });
-            
-            // 发放奖励
-            if (achievement.reward) {
-                growth.changeCoins(achievement.reward.coins || 0);
-                growth.addXP(achievement.reward.exp || 0);
-            }
-        });
-    }
-};
-
-/**
- * 检查是否跨天并重置每日统计
- */
-const checkAndResetDailyStats = () => {
-    const today = new Date().toDateString();
-    const lastResetDate = uni.getStorageSync('last_reset_date') || '';
-    
-    if (lastResetDate !== today) {
-        // 跨天了，重置每日统计
-        growth.resetDailyStats();
-        uni.setStorageSync('last_reset_date', today);
-        
-        // 添加日志
-        growthLog.addGrowthLog('🌅 新的一天开始了！', 0);
-    }
-};
+// 为兼容其他地方的调用，保留 checkAchievements 别名
+const checkAchievements = () => lifecycle.checkAchievements();
 
 // ========== 4. 事件处理器 ==========
 
@@ -586,90 +507,19 @@ const openHistory = () => {
 };
 
 /**
- * 处理用户输入更新
+ * 处理用户输入更新（委托给 chatHandlers）
  */
-const handleUserInputUpdate = (value) => {
-    // handleUserInputUpdate 被调用
-    if (chat.userInput) {
-        chat.userInput.value = value;
-    }
-};
+const handleUserInputUpdate = chatHandlers.handleUserInputUpdate;
 
 /**
- * 发送消息
+ * 发送消息（委托给 chatHandlers）
  */
-const handleSendMessage = async (content) => {
-    logUserAction('发送消息', { 内容: content.substring(0, 30) });
-    
-    const context = {
-        level: growth.petLevel.value,
-        mood: growth.mood.value,
-        todayStudyTime: growth.todayStudyTime.value,
-        todayIdleTime: growth.todayIdleTime.value
-    };
-    
-    await chat.sendMessage(
-        content,
-        async (userMsg, ctx) => {
-            try {
-                // 构建聊天历史
-                const history = chat.messages.value
-                    .filter(m => m.role !== 'system')
-                    .map(m => ({
-                        role: m.role === 'user' ? 'user' : 'assistant',
-                        content: m.content
-                    }));
-                
-                const reply = await ai.chatWithPet(userMsg, ctx, history);
-                return reply;
-            } catch (e) {
-                return '嗯...让我想想 💭';
-            }
-        },
-        context
-    );
-    
-    // 发送消息后检查成就
-    checkAchievements();
-};
+const handleSendMessage = chatHandlers.handleSendMessage;
 
 /**
- * 快捷回复
+ * 快捷回复（委托给 chatHandlers）
  */
-const handleQuickReply = async (replyId) => {
-    logUserAction('点击快捷回复', { replyId });
-    
-    const context = {
-        level: growth.petLevel.value,
-        mood: growth.mood.value,
-        todayStudyTime: growth.todayStudyTime.value,
-        todayIdleTime: growth.todayIdleTime.value
-    };
-    
-    chat.sendQuickReply(
-        replyId,
-        async (userMsg, ctx) => {
-            try {
-                // 构建聊天历史
-                const history = chat.messages.value
-                    .filter(m => m.role !== 'system')
-                    .map(m => ({
-                        role: m.role === 'user' ? 'user' : 'assistant',
-                        content: m.content
-                    }));
-                
-                const reply = await ai.chatWithPet(userMsg, ctx, history);
-                return reply;
-            } catch (e) {
-                return '嗯...让我想想 💭';
-            }
-        },
-        context
-    );
-    
-    // 快捷回复后检查成就
-    checkAchievements();
-};
+const handleQuickReply = chatHandlers.handleQuickReply;
 
 /**
  * 使用背包物品
