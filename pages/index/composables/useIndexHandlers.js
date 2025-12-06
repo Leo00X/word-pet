@@ -71,6 +71,15 @@ export function useIndexHandlers(deps) {
 
         setTimeout(() => {
             if (floatWindow.isPetShown.value) {
+                // 同步当前皮肤到悬浮窗
+                if (skins && skins.currentSkin && skins.currentSkin.value) {
+                    const currentSkin = skins.currentSkin.value;
+                    if (currentSkin.id !== 'default') {
+                        skins.syncSkinToFloat(currentSkin);
+                    }
+                }
+
+                // 检查是否有待发送的问候
                 const pending = getAndClearPendingGreeting();
                 if (pending) {
                     floatWindow.sendMessageToFloat(1, pending);
