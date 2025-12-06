@@ -1,20 +1,19 @@
 /**
- * AI 多模态控制器 Composable
+ * AI 多模态控制器 Composable (Phase 3 增强版)
  * 职责: 构建结构化 Prompt，解析 AI 返回的动作指令
+ * 
+ * Phase 3 新增：
+ * - 对话历史上下文
+ * - 记忆检索增强
+ * - 多级降级策略
  * 
  * 输出格式: { text, emotion, action, duration, bubble_color }
  */
-import { ref } from 'vue';
-import { aiService } from '@/utils/aiService.js';
+import { ref, computed } from 'vue';
+import { chatWithAI } from '@/utils/aiService.js';
 import { debugLog, logAI, logError } from '@/utils/debugLog.js';
-
-// ========== 默认回复配置 ==========
-const DEFAULT_RESPONSES = {
-    happy: { text: '嘿嘿~', action: 'jump', emotion: 'happy', duration: 1000, bubbleColor: '#4CAF50' },
-    sad: { text: '呜...', action: 'hide', emotion: 'sad', duration: 1500, bubbleColor: '#2196F3' },
-    angry: { text: '哼！', action: 'shake', emotion: 'angry', duration: 1200, bubbleColor: '#F44336' },
-    neutral: { text: '...', action: 'idle', emotion: 'neutral', duration: 800, bubbleColor: '#9E9E9E' }
-};
+import { useAIContextBuilder } from './useAIContextBuilder.js';
+import { useAIFallback } from './useAIFallback.js';
 
 // 可用的动作列表
 export const AVAILABLE_ACTIONS = [
@@ -30,45 +29,23 @@ export const AVAILABLE_EMOTIONS = [
 
 // ========== Composable ==========
 export function useAIController(options = {}) {
-    const { maxTextLength = 50, timeout = 5000 } = options;
+    const {
+        maxTextLength = 50,
+        memorySystem = null,      // [新] 记忆系统集成
+        behaviorTree = null       // [新] 行为树状态集成
+    } = options;
+
+    // 集成子模块
+    const contextBuilder = useAIContextBuilder({ memorySystem, behaviorTree });
+    const fallback = useAIFallback();
 
     // 状态
     const isLoading = ref(false);
     const lastResponse = ref(null);
-    const errorCount = ref(0);
+    const lastContext = ref(null);
 
     /**
-     * 构建多模态 Prompt
-     * @param {Object} context - 交互上下文
-     * @returns {string}
-     */
-    const buildPrompt = (context) => {
-        const { action, mood, level, studyMinutes = 0, gestureType = '' } = context;
-
-        return `你是一只住在手机桌面的傲娇电子宠物"寄生兽"。
-
-【用户行为】: ${action}
-【手势类型】: ${gestureType}
-【当前心情】: ${mood}/100
-【当前等级】: Lv.${level}
-【今日学习】: ${studyMinutes} 分钟
-
-请返回 JSON 格式（不要有其他文字）:
-{
-  "text": "30字以内对话，可用emoji",
-  "emotion": "happy|sad|angry|surprised|sleepy",
-  "action": "jump|wave|hide|spin|shake|nod|idle",
-  "duration": 500-2000,
-  "bubble_color": "#颜色代码"
-}
-
-示例:
-用户抚摸 + 心情70 → {"text":"嘿嘿，再摸一下~","emotion":"happy","action":"jump","duration":800,"bubble_color":"#4CAF50"}
-用户摸鱼中 + 心情20 → {"text":"去背单词！💢","emotion":"angry","action":"shake","duration":1000,"bubble_color":"#F44336"}`;
-    };
-
-    /**
-     * 请求 AI 多模态响应
+     * [增强] 请求 AI 多模态响应（带上下文和降级）
      * @param {Object} context - 交互上下文
      * @returns {Promise<Object>}
      */
@@ -76,42 +53,103 @@ export function useAIController(options = {}) {
         isLoading.value = true;
 
         try {
-            const prompt = buildPrompt(context);
-            logAI('请求多模态响应', { context });
+            // 根据当前降级级别选择策略
+            const level = fallback.currentLevel.value;
 
-            const response = await Promise.race([
-                aiService.sendMessage(prompt, { temperature: 0.8 }),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('AI 响应超时')), timeout)
-                )
-            ]);
+            if (level >= 2) {
+                // Level 2/3: 使用本地响应
+                return handleLocalResponse(context, level);
+            }
 
-            const parsed = parseAIResponse(response);
-            lastResponse.value = parsed;
-            errorCount.value = 0;
-
-            logAI('AI 响应解析成功', parsed);
-            return parsed;
+            // Level 0/1: 调用 AI
+            const result = await requestAIWithLevel(context, level);
+            fallback.recordSuccess();
+            return result;
 
         } catch (error) {
             logError('AIController', error);
-            errorCount.value++;
+            fallback.recordFailure(error);
 
-            // 降级返回本地响应
-            return getFallbackResponse(context.mood);
+            // 降级后重试
+            return handleFallbackResponse(context);
         } finally {
             isLoading.value = false;
         }
     };
 
     /**
+     * 根据级别调用 AI
+     */
+    const requestAIWithLevel = async (context, level) => {
+        // 获取行为树状态
+        const btState = behaviorTree ? {
+            rootState: behaviorTree.rootState?.value || 'IDLE',
+            subState: behaviorTree.subState?.value || 'idle_normal'
+        } : {};
+
+        // 构建完整上下文
+        const fullContext = { ...context, ...btState };
+
+        // 根据级别构建 Prompt
+        const promptData = level === 0
+            ? contextBuilder.buildEnhancedPrompt(fullContext)
+            : contextBuilder.buildCompactPrompt(fullContext);
+
+        lastContext.value = promptData;
+
+        logAI('[AI] 请求 Level', level, { context: fullContext });
+
+        // 调用 AI
+        const response = await Promise.race([
+            chatWithAI(promptData.userMessage, promptData.systemPrompt, promptData.history),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('AI 响应超时')), fallback.currentTimeout.value)
+            )
+        ]);
+
+        // 解析响应
+        const parsed = parseAIResponse(response);
+        lastResponse.value = parsed;
+
+        // 如果有记忆系统，记录这次交互
+        if (memorySystem && memorySystem.addMemory) {
+            memorySystem.addMemory('user', promptData.userMessage);
+            memorySystem.addMemory('pet', parsed.text);
+        }
+
+        logAI('[AI] 响应成功', parsed);
+        return parsed;
+    };
+
+    /**
+     * 处理本地响应（Level 2/3）
+     */
+    const handleLocalResponse = (context, level) => {
+        const eventType = context.gestureType || context.action || 'TAP';
+        const mood = context.mood || 50;
+
+        const response = level === 2
+            ? fallback.getTemplateResponse(eventType, mood)
+            : fallback.getStaticResponse(mood);
+
+        lastResponse.value = response;
+        logAI('[AI] 本地响应 Level', level, response);
+        return response;
+    };
+
+    /**
+     * 处理降级响应
+     */
+    const handleFallbackResponse = (context) => {
+        const level = fallback.currentLevel.value;
+        return handleLocalResponse(context, level);
+    };
+
+    /**
      * 解析 AI 返回的 JSON
-     * @param {string} response 
-     * @returns {Object}
      */
     const parseAIResponse = (response) => {
         try {
-            // 尝试提取 JSON
             let jsonStr = response;
             const jsonMatch = response.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -120,7 +158,6 @@ export function useAIController(options = {}) {
 
             const parsed = JSON.parse(jsonStr);
 
-            // 验证并规范化
             return {
                 text: String(parsed.text || '...').slice(0, maxTextLength),
                 emotion: AVAILABLE_EMOTIONS.includes(parsed.emotion) ? parsed.emotion : 'neutral',
@@ -131,18 +168,14 @@ export function useAIController(options = {}) {
             };
         } catch (e) {
             debugLog('[AI] JSON 解析失败:', e.message);
-            // 尝试从文本中提取有用信息
             return extractFromText(response);
         }
     };
 
     /**
      * 从非结构化文本中提取信息
-     * @param {string} text 
-     * @returns {Object}
      */
     const extractFromText = (text) => {
-        // 检测情感关键词
         let emotion = 'neutral';
         let action = 'idle';
         let color = '#667eea';
@@ -165,50 +198,45 @@ export function useAIController(options = {}) {
     };
 
     /**
-     * 获取本地降级响应
-     * @param {number} mood 
-     * @returns {Object}
+     * 快速本地响应（不调用 AI）
      */
-    const getFallbackResponse = (mood = 50) => {
-        if (mood > 70) return DEFAULT_RESPONSES.happy;
-        if (mood > 40) return DEFAULT_RESPONSES.neutral;
-        if (mood > 20) return DEFAULT_RESPONSES.sad;
-        return DEFAULT_RESPONSES.angry;
+    const getLocalResponse = (gestureType, mood = 50) => {
+        return fallback.getTemplateResponse(gestureType, mood);
     };
 
     /**
-     * 快速本地响应（不调用 AI）
-     * @param {string} gestureType 
-     * @param {number} mood 
-     * @returns {Object}
+     * 获取降级状态
      */
-    const getLocalResponse = (gestureType, mood = 50) => {
-        const responses = {
-            'TAP': ['嘿~', '干嘛？', '在呢！'],
-            'DOUBLE_TAP': ['打开菜单~', '来玩吗？'],
-            'LONG_PRESS': ['别按太久~', '痒痒的！'],
-            'THROW': ['呜哇！', '别甩我！'],
-            'SWIPE': ['嘿！', '躲开！']
-        };
+    const getFallbackStats = () => fallback.getStats();
 
-        const texts = responses[gestureType] || ['...'];
-        const text = texts[Math.floor(Math.random() * texts.length)];
+    /**
+     * 强制重置降级状态
+     */
+    const resetFallback = () => fallback.reset();
 
-        const fallback = getFallbackResponse(mood);
-        return { ...fallback, text };
-    };
+    // 计算属性
+    const isUsingAI = computed(() => fallback.currentLevel.value < 2);
+    const fallbackLevel = computed(() => fallback.currentLevel.value);
 
     return {
         // 状态
         isLoading,
         lastResponse,
-        errorCount,
+        lastContext,
+        // 计算属性
+        isUsingAI,
+        fallbackLevel,
+        // 子模块
+        contextBuilder,
+        fallback,
         // 方法
         requestResponse,
         getLocalResponse,
-        getFallbackResponse,
+        getFallbackStats,
+        resetFallback,
         // 常量
         AVAILABLE_ACTIONS,
         AVAILABLE_EMOTIONS
     };
 }
+
