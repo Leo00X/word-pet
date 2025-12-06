@@ -1,7 +1,7 @@
 👾 WordParasite (单词寄生兽) | Desktop AI Companion
 
-> **📅 最新更新**: 2025-12-06 - 皮肤系统全面升级 + 重构BUG修复 (9个) + 开发者测试功能  
-> 📖 查看详细更新日志: [UPDATES.md](./UPDATES.md) | AI使用指南: [AI_GUIDE.md](./AI_GUIDE.md)  
+> **📅 最新更新**: 2025-12-06 - 🎉 悬浮窗互动系统 Phase 1-3 完成 (行为树+睡眠系统+AI增强)  
+> 📖 功能指南: [悬浮窗用户指南](./FLOAT_WINDOW_GUIDE.md) | [技术文档](./FLOAT_WINDOW_TECHNICAL.md) | [更新日志](./UPDATES.md) | [AI使用指南](./AI_GUIDE.md)  
 > 🛡️ **开发者必读**: [BUG防范指南](./bug_prevention_guide.md) - 18个易错案例 + 三轮审查方法
 
 "It watches you. It judges you. It forces you to learn."
@@ -76,11 +76,20 @@
 
 3. **🧠 AI 注入灵魂 (Gemini Persona)** [WIP]
     * 接入 Google Gemini API，让宠物拥有记忆。
-    * **Prompt 设定**：“你是一只傲娇的电子猫。看到用户今天刷了2小时抖音只背了5分钟单词。请生成一句50字以内的毒舌嘲讽。”
+    * **Prompt 设定**："你是一只傲娇的电子猫。看到用户今天刷了2小时抖音只背了5分钟单词。请生成一句50字以内的毒舌嘲讽。"
+    * **✨ Phase 3 升级**: 记忆增强 Prompt + 4级降级策略 + 对话历史上下文”
 
 4. **⚡ 本地化存储与缓存**
     * **应用列表缓存**：首次扫描后自动缓存已安装应用列表，实现“秒开”选择页。
     * **数据持久化**：心情值、经验值、历史日记均写入本地 Storage，杀后台不丢失。
+
+5. **🎮 悬浮窗智能互动系统** [NEW]
+    * **行为树状态管理**: 5种根状态 + 12种细分子状态 (IDLE/INTERACTION/WORKING/ANGRY/SLEEPING)
+    * **手势识别引擎**: 支持TAP/DOUBLE_TAP/LONG_PRESS/SWIPE/THROW，带防抖和模式检测
+    * **睡眠/唤醒机制**: 深夜自动入睡，做梦系统，睡眠恢复心情
+    * **状态持续时间追踪**: 记录每个状态的持续时间，提供每日统计
+    * **AI降级策略**: 4级降级 (完整AI→压缩AI→本地模板→静态响应)，确保离线可用
+    * **📂 技术架构**: 7个模块化 Composable，所有文件 <350行，符合防臃肿协议
 
 ---
 
