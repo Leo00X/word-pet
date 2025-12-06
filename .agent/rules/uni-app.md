@@ -21,10 +21,15 @@ trigger: always_on
 
 ### S - Structure & Configuration (架构与配置优先)
 
-**首页净化协议 (Index Purification Protocol)**: 
-* **角色定义**: `index.vue` (及其他页面级组件) 仅作为 **"容器 (Container)"**。它只负责组装组件和连接数据，**严禁**包含超过 50 行的内联业务逻辑或复杂的 UI 渲染代码。
-* **强制组件化**: 凡是能视觉独立的功能块（如"宠物显示"、"聊天面板"、"控制按钮"），**必须**封装为独立的 `.vue` 组件存入 `components/` 目录。
-* **逻辑抽离**: 所有的状态管理（State）、定时器（Timer）、数据计算（Calculation）**必须** 移入 Pinia Store 或 Composables (`composables/useXxx.js`)。**绝对禁止**在 `index.vue` 中直接使用 `setInterval` 或编写复杂函数，仅允许调用 Composable 暴露的方法。
+* **架构模式锁定 (Architecture Enforcement)**: 本项目严格遵循 **"Composable + Component"** 架构，严禁破坏目录结构。
+    * **逻辑层 (Composables)**: 任何业务逻辑（如新玩法、计时器、状态管理）**必须**封装为组合式函数 (`useXxx.js`)，存放于 `pages/index/composables/`。
+        * *范式*: 使用 `ref` 定义状态，`uni.setStorageSync` 实现持久化，最后 `return` 出响应式对象供视图绑定。
+    * **UI 层 (Components)**: 任何界面模块（如新面板、弹窗）**必须**封装为独立组件 (`Xxx.vue`)，存放于 `pages/index/components/`。
+* **Index 净化协议 (Index Purification)**:
+    * `pages/index/index.vue` 仅作为**组装容器**。它的职责仅限于引入 Component 和 Composable，并进行简单的事件绑定。
+    * **严禁**在 `index.vue` 中直接编写业务函数（如计算逻辑、API 请求）。
+    * **阈值警告**: 如果 `index.vue` 的 `<script>` 超过 150 行，视为架构违规，必须拆分。
+* **Pages.json 同步**: 创建新页面（Page）时，**必须**同步输出 `pages.json` 配置片段。
 
 **功能模块化原则 (Feature Modularity)**: 
 * 当需要增加新功能（如"商店"、"成就系统"、"历史记录"）时：

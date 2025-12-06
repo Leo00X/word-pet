@@ -415,6 +415,10 @@
                         handleSkinChange(data);
                         break;
 
+                    case 200: // [新] 多模态 AI 响应
+                        handleMultimodalResponse(data);
+                        break;
+
                     default:
                         console.log("[Pet] 未知消息类型:", type);
                 }
@@ -468,6 +472,58 @@
             } else {
                 // Emoji/CSS 模式
                 switchToEmojiMode(data.petType);
+            }
+        }
+
+        /**
+         * [新] 处理多模态 AI 响应
+         * @param {Object} data - { action, text, bubbleColor, duration, emotion }
+         */
+        function handleMultimodalResponse(data) {
+            console.log("[Pet] 多模态响应:", data);
+
+            const { action, text, bubbleColor, duration, emotion } = data;
+
+            // 1. 播放动画
+            if (action && action !== 'idle') {
+                // 映射 AI 动作到现有动画状态
+                const actionMap = {
+                    'jump': 'happy',
+                    'wave': 'happy',
+                    'celebrate': 'happy',
+                    'shake': 'angry',
+                    'hide': 'idle',
+                    'spin': 'happy',
+                    'nod': 'idle',
+                    'sleep': 'idle',
+                    'scared': 'angry',
+                    'shy': 'interact'
+                };
+                const animState = actionMap[action] || 'idle';
+                changeState(animState, duration || 1500);
+            }
+
+            // 2. 显示气泡
+            if (text) {
+                // 动态设置气泡颜色
+                if (bubbleColor) {
+                    document.documentElement.style.setProperty('--bubble-bg', bubbleColor);
+                }
+
+                // 根据情感选择气泡样式
+                let bubbleStyle = 'default';
+                if (emotion === 'happy' || emotion === 'excited') {
+                    bubbleStyle = 'success';
+                } else if (emotion === 'angry') {
+                    bubbleStyle = 'warning';
+                }
+
+                showBubble(text, bubbleStyle);
+            }
+
+            // 3. 触觉反馈（如果支持）
+            if (navigator.vibrate && (action === 'shake' || action === 'jump')) {
+                navigator.vibrate(50);
             }
         }
 
