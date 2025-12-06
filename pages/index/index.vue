@@ -217,6 +217,8 @@ import { useAchievements } from './composables/useAchievements.js';
 import { usePetInteraction } from './composables/usePetInteraction.js';
 import { usePageLifecycle } from './composables/usePageLifecycle.js';
 import { useChatHandlers } from './composables/useChatHandlers.js';
+import { useIndexState } from './composables/useIndexState.js';
+import { useIndexHandlers } from './composables/useIndexHandlers.js';
 import { ref, computed, watch } from 'vue';
 
 // ========== 1. 初始化 Composables ==========
@@ -304,33 +306,19 @@ const memory = useMemory();
 // 1.12 云同步服务
 const cloudSync = useCloudSync();
 
-// ========== 2. 页面状态 ==========
+// ========== 2. 页面状态（使用 useIndexState）==========
+const indexState = useIndexState(chat);
+const { currentTab, modals, openModal, closeModal } = indexState;
 
-// 当前选中的 Tab
-const currentTab = ref('status');
+// 兼容性别名
+const showAchievementModal = computed(() => modals.achievement);
+const showSkinModal = computed(() => modals.skin);
+const showGameModal = computed(() => modals.game);
+const showMarketModal = computed(() => modals.market);
+const showBackupModal = computed(() => modals.backup);
+const userMessageCount = indexState.userMessageCount;
 
-// 弹窗状态
-const showAchievementModal = ref(false);
-const showSkinModal = ref(false);
-const showGameModal = ref(false);
-const showMarketModal = ref(false);
-const showBackupModal = ref(false);
-
-// 计算今日用户对话次数（只统计今天的消息）
-const userMessageCount = computed(() => {
-    const msgs = chat.messages.value || [];
-    const today = new Date().toDateString();
-    const todayMsgs = msgs.filter(m => {
-        if (m.role !== 'user') return false;
-        const msgDate = new Date(m.timestamp).toDateString();
-        return msgDate === today;
-    });
-    return todayMsgs.length;
-});
-
-// ========== 2.1 提取的 Composables ==========
-
-// 页面生命周期管理
+// ========== 2.1 页面生命周期 ==========
 const lifecycle = usePageLifecycle({
     permissions,
     floatWindow,
@@ -341,7 +329,25 @@ const lifecycle = usePageLifecycle({
     getChatCount: () => userMessageCount.value
 });
 
-// 聊天事件处理
+// ========== 2.2 事件处理器（使用 useIndexHandlers）==========
+const handlers = useIndexHandlers({
+    growth,
+    growthLog,
+    chat,
+    ai,
+    monitor,
+    floatWindow,
+    permissions,
+    terminal,
+    skins,
+    animations,
+    achievements,
+    memory,
+    cloudSync,
+    indexState
+});
+
+// 聊天事件处理（保留兼容）
 const chatHandlers = useChatHandlers({
     chat,
     ai,
@@ -350,245 +356,39 @@ const chatHandlers = useChatHandlers({
 });
 
 // ========== 3. 生命周期 ==========
+onShow(() => lifecycle.initializePage());
 
-// 页面显示时（逻辑已移至 usePageLifecycle）
-onShow(() => {
-    lifecycle.initializePage();
-});
-
-// 为兼容其他地方的调用，保留 checkAchievements 别名
+// 兼容性别名
 const checkAchievements = () => lifecycle.checkAchievements();
 
-// ========== 4. 事件处理器 ==========
+// ========== 4. 事件处理器（委托给 handlers/chatHandlers）==========
 
-/**
- * 切换宠物显示
- */
-const handleTogglePet = () => {
-    logUserAction('切换宠物显示', { 当前状态: floatWindow.isPetShown.value ? '显示中' : '隐藏' });
-    permissions.checkPermissions();
-    floatWindow.togglePet(permissions.hasFloatPermission.value);
-    
-    // [BUG#1 修复] 如果是开启悬浮窗，发送初始消息（问候或默认）
-    setTimeout(() => {
-        if (floatWindow.isPetShown.value) {
-            // 同步当前皮肤到悬浮窗
-            const currentSkin = skins.currentSkin.value;
-            if (currentSkin && currentSkin.id !== 'default') {
-                skins.syncSkinToFloat(currentSkin);
-            }
-            
-            // 检查是否有待发送的问候
-            const pending = getAndClearPendingGreeting();
-            if (pending) {
-                // 有待发送的问候，显示问候
-                floatWindow.sendMessageToFloat(1, pending);
-            } else {
-                // 无待发送问候，显示默认初始消息
-                floatWindow.sendMessageToFloat(1, 'WordParasite<br>已寄生...');
-            }
-        }
-    }, 1000);  // 增加延迟确保悬浮窗完全加载
-};
+// 宠物交互
+const handleTogglePet = handlers.handleTogglePet;
+const handlePetInteract = handlers.handlePetInteract;
 
-/**
- * 抚摸宠物互动
- */
-const handlePetInteract = () => {
-    logUserAction('抚摸宠物', {});
-    
-    // 调用growth的interact方法
-    const result = growth.interact();
-    
-    // 显示互动效果
-    if (result.mood > 0 || result.bond > 0) {
-        growthLog.addGrowthLog(`抚摸了宠物 ❤️ 心情+${result.mood} 亲密+${result.bond}`, result.mood);
-        uni.showToast({
-            title: `💕 宠物很开心！`,
-            icon: 'none'
-        });
-    }
-    
-    // 检查成就
-    checkAchievements();
-};
+// 监控控制
+const handleToggleMonitor = handlers.handleToggleMonitor;
+const handleIntervalChange = handlers.handleIntervalChange;
 
-/**
- * 切换监控状态
- */
-const handleToggleMonitor = () => {
-    logUserAction('切换监控状态', { 当前状态: monitor.isMonitoring.value ? '监控中' : '停止' });
-    permissions.checkPermissions();
-    monitor.toggleMonitor(permissions.hasUsagePermission.value);
-};
+// 导航
+const openSelector = handlers.openSelector;
+const openHistory = handlers.openHistory;
+const handleChangePetType = handlers.handleChangePetType;
 
-/**
- * 监控间隔变更
- */
-const handleIntervalChange = (value) => {
-    monitor.updateMonitorInterval(value);
-};
+// 皮肤/游戏
+const handleSkinSelect = handlers.handleSkinSelect;
+const handleSkinPurchase = handlers.handleSkinPurchase;
+const handleUseItem = handlers.handleUseItem;
+const handleGameEnd = handlers.handleGameEnd;
 
-/**
- * 打开应用选择器
- */
-const openSelector = (mode) => {
-    uni.showLoading({ title: '准备中...', mask: true });
-    setTimeout(() => {
-        uni.hideLoading();
-        uni.navigateTo({
-            url: `/pages/config/app-selector?mode=${mode}`,
-            fail: () => uni.hideLoading()
-        });
-    }, 100);
-};
-
-/**
- * 切换宠物类型
- */
-const handleChangePetType = (petTypeId) => {
-    if (growth && growth.changePetType) {
-        growth.changePetType(petTypeId);
-    }
-};
-
-/**
- * 选择皮肤
- */
-const handleSkinSelect = (skinId) => {
-    const success = skins.applySkin(skinId);
-    if (success) {
-        // 播放开心动画
-        animations.playHappy(2000);
-        // 关闭弹窗
-        showSkinModal.value = false;
-    }
-};
-
-/**
- * 购买皮肤（商城）
- */
-const handleSkinPurchase = (data) => {
-    logUserAction('购买皮肤', { skinId: data.skinId, price: data.price });
-    
-    // 扣除金币
-    if (data.price > 0) {
-        growth.changeCoins(-data.price);
-    }
-    
-    // 添加皮肤到本地列表
-    skins.addSkin(data.skinData);
-    
-    // 记录日志
-    growthLog.addGrowthLog(`购买皮肤「${data.skinData.name}」`, 0);
-    
-    // 播放动画
-    animations.playHappy(2000);
-    
-    // 关闭商城弹窗，打开皮肤管理（让用户立即切换新皮肤）
-    showMarketModal.value = false;
-    
-    // 延迟打开皮肤管理，让关闭动画完成
-    setTimeout(() => {
-        showSkinModal.value = true;
-        uni.showToast({ 
-            title: `✅ 已购买 ${data.skinData.name}`, 
-            icon: 'none',
-            duration: 2000
-        });
-    }, 300);
-};
-
-/**
- * 打开成长历史
- */
-const openHistory = () => {
-    uni.navigateTo({ url: '/pages/log/log-history' });
-};
-
-/**
- * 处理用户输入更新（委托给 chatHandlers）
- */
+// 聊天（委托给 chatHandlers）
 const handleUserInputUpdate = chatHandlers.handleUserInputUpdate;
-
-/**
- * 发送消息（委托给 chatHandlers）
- */
 const handleSendMessage = chatHandlers.handleSendMessage;
-
-/**
- * 快捷回复（委托给 chatHandlers）
- */
 const handleQuickReply = chatHandlers.handleQuickReply;
 
-/**
- * 使用背包物品
- */
-const handleUseItem = (data) => {
-    logUserAction('使用物品', { itemId: data.itemId, itemName: data.itemName });
-    
-    // 应用物品效果
-    if (data.effect) {
-        if (data.effect.mood) growth.changeMood(data.effect.mood);
-        if (data.effect.hunger) growth.changeHunger(data.effect.hunger);
-        if (data.effect.bond) growth.changeBond(data.effect.bond);
-        if (data.effect.exp) growth.addXP(data.effect.exp);
-    }
-    
-    growthLog.addGrowthLog(`使用了 ${data.itemName}`, 0);
-    
-    // 如果是游戏道具，打开小游戏
-    if (data.itemId === 'game_ticket') {
-        showGameModal.value = true;
-    }
-};
-
-/**
- * 小游戏结束处理
- */
-const handleGameEnd = (result) => {
-    logUserAction('小游戏结束', { score: result.score, correctRate: result.correctRate });
-    
-    // 发放奖励
-    if (result.rewards) {
-        growth.addXP(result.rewards.xp);
-        growth.changeCoins(result.rewards.coins);
-        
-        // 增加心情
-        if (result.correctRate >= 60) {
-            growth.changeMood(10);
-        }
-        
-        // 播放开心动画
-        animations.playHappy(3000);
-        
-        growthLog.addGrowthLog(`小游戏得分 ${result.score}，获得 ${result.rewards.xp}经验 ${result.rewards.coins}金币`, result.rewards.xp);
-    }
-    
-    // 检查成就
-    checkAchievements();
-};
-
-/**
- * 写日记
- */
-const handleWriteDiary = async (data) => {
-    logUserAction('写日记', {});
-    
-    try {
-        // 使用 AI 生成日记内容
-        const diaryContent = await ai.generateDiary(data.prompt);
-        
-        if (data.callback) {
-            data.callback(diaryContent);
-        }
-    } catch (e) {
-        console.error('生成日记失败:', e);
-        if (data.onError) {
-            data.onError();
-        }
-    }
-};
+// 日记
+const handleWriteDiary = handlers.handleWriteDiary;
 </script>
 
 <style lang="scss">
