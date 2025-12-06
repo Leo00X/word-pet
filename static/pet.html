@@ -22,27 +22,36 @@
             font-family: 'Segoe UI', sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            /* [BUG#104] 空白区域不拦截点击  */
+            pointer-events: none;
         }
 
-        /* 容器 */
+        /* [BUG#104] 容器 - 减小尺寸 */
         .container {
             position: relative;
-            width: 160px;
-            height: 180px;
+            width: 100px;
+            height: 100px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: center;
             cursor: pointer;
             transition: transform 0.1s;
+            /* [BUG#104] 只有宠物区域响应点击 */
+            pointer-events: auto;
         }
 
         .container:active {
             transform: scale(0.95);
         }
 
-        /* --- 对话气泡样式 --- */
+        /* [BUG#104] 对话气泡样式  -  绝对定位，悬浮在宠物上方 */
         .bubble {
+            position: absolute;
+            bottom: 100%;
+            /* 显示在宠物上方 */
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
             background: var(--bubble-bg, rgba(0, 0, 0, 0.85));
             color: var(--bubble-color, #00e676);
             padding: 8px 12px;
@@ -50,20 +59,20 @@
             font-size: 12px;
             line-height: 1.4;
             max-width: 140px;
+            min-width: 80px;
             text-align: center;
-            margin-bottom: 10px;
-            position: relative;
             opacity: 0;
-            transform: translateY(10px);
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             pointer-events: none;
             border: 1px solid var(--bubble-border, #333);
+            white-space: nowrap;
+            z-index: 100;
         }
 
         .bubble.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(-50%) translateY(0);
         }
 
         .bubble::after {
@@ -674,6 +683,15 @@
                 bubble.classList.add(style);
             }
 
+            // [禁用] 动态尺寸调整会导致位置重置，暂时禁用
+            // 现在 NORMAL 和 BUBBLE 尺寸相同，无需切换
+            // if (typeof uniapp !== 'undefined') {
+            //     uniapp.sendDataToUni(50, JSON.stringify({
+            //         action: 'resize',
+            //         size: 'BUBBLE'
+            //     }));
+            // }
+
             if (bubbleTimer) clearTimeout(bubbleTimer);
             bubbleTimer = setTimeout(() => {
                 hideBubble();
@@ -682,6 +700,14 @@
 
         function hideBubble() {
             bubble.classList.remove('show');
+
+            // [禁用] 动态尺寸调整
+            // if (typeof uniapp !== 'undefined') {
+            //     uniapp.sendDataToUni(50, JSON.stringify({
+            //         action: 'resize',
+            //         size: 'NORMAL'
+            //     }));
+            // }
         }
 
         // ========== 拖拽系统 ==========
@@ -694,6 +720,9 @@
 
         // 拖拽开始
         function onDragStart(e) {
+            // 注意: 不在这里调用 preventDefault()，否则会阻止 click 事件
+            // 系统长按菜单由 contextmenu 事件监听器单独阻止
+
             const touch = e.touches ? e.touches[0] : e;
             dragStartX = touch.clientX;
             dragStartY = touch.clientY;
@@ -830,22 +859,31 @@
 
         // 长按事件
         function onLongPress() {
+            // [BUG#102 修复] 发送长按事件给 uni-app 处理，由 AI 返回响应
             if (typeof uniapp !== 'undefined') {
                 uniapp.sendDataToUni(3, JSON.stringify({
                     event: 'long_press',
+                    type: 'LONGPRESS',  // 添加标准类型供手势识别器使用
                     duration: 800
                 }));
             }
 
-            // 显示选项提示
-            showBubble('📋 长按菜单');
+            // 本地反馈：播放害羞动画（不再显示硬编码文本，等待 AI 响应）
+            changeState('shy', 1000);
         }
 
-        // 触摸事件绑定
-        petArea.addEventListener('touchstart', onDragStart, { passive: true });
+        // [BUG#102 修复] 触摸事件绑定 - 移除 passive:true 以允许 preventDefault
+        petArea.addEventListener('touchstart', onDragStart, { passive: false });
         petArea.addEventListener('touchmove', onDragMove, { passive: true });
         petArea.addEventListener('touchend', onDragEnd);
         petArea.addEventListener('touchcancel', onDragEnd);
+
+        // [BUG#102 修复] 阻止系统右键/长按菜单
+        petArea.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
 
         // 鼠标事件（H5调试用）
         petArea.addEventListener('mousedown', onDragStart);
@@ -893,9 +931,9 @@
 
         console.log('[Pet] 悬浮窗初始化完成');
 
-        setTimeout(() => {
-            showBubble("WordParasite<br>已寄生...");
-        }, 800);
+        // [BUG#1 修复] 移除自动显示的初始化消息
+        // 初始消息统一由 uni-app 端控制（handleTogglePet），避免与待发送问候冲突
+        // 如果有待发送问候则显示问候，否则显示默认初始消息
 
     </script>
 </body>

@@ -16,12 +16,13 @@ import { ref } from 'vue';
 import { FloatWindow } from "@/uni_modules/android-floatwindow";
 import { debugLog } from '@/utils/debugLog.js';
 
-// 悬浮窗尺寸配置
+// 悬浮窗尺寸配置 - 固定大尺寸以显示气泡
 const FLOAT_SIZES = {
-    SMALL: { w: 80, h: 80 },    // 待机球
-    NORMAL: { w: 200, h: 200 }, // 默认
-    LARGE: { w: 300, h: 250 },  // 互动展开
-    FULL: { w: 400, h: 400 }    // 警告模式
+    SMALL: { w: 60, h: 60 },    // 迷你球
+    NORMAL: { w: 160, h: 180 }, // 默认（包含气泡空间）
+    BUBBLE: { w: 160, h: 180 }, // 显示气泡时
+    LARGE: { w: 200, h: 220 },  // 大对话
+    FULL: { w: 300, h: 300 }    // 警告模式
 };
 
 export function useFloatWindow(options = {}) {
@@ -62,11 +63,14 @@ export function useFloatWindow(options = {}) {
             setFloatSize('NORMAL');
 
             // 初始位置：屏幕右下角
-            floatWinInstance.value.setGravity(8); // 8 = 下右
+            floatWinInstance.value.setGravity(2); // 1 = 下左
 
             floatWinInstance.value.setShowPattern(3); // 全局显示
             floatWinInstance.value.setDragEnable(true);
-            floatWinInstance.value.setSidePattern(12); // 四角吸附
+            // [BUG#103] 边缘吸附模式
+            // 测试: 1=仅左侧锁定, 3=仅上方锁定, 12=四角(效果不明显)
+            // 使用 0=无吸附，允许自由拖拽
+            floatWinInstance.value.setSidePattern(12);
 
             // 监听 Web 消息 (增强版双向通信)
             floatWinInstance.value.onListenerWebData(handleWebMessage);
@@ -121,6 +125,14 @@ export function useFloatWindow(options = {}) {
                 case 100:
                     if (onGestureEvent) {
                         onGestureEvent(data);
+                    }
+                    break;
+
+                // [BUG#105] 尺寸切换请求
+                case 50:
+                    if (data.action === 'resize' && data.size) {
+                        debugLog("[Float] 动态调整尺寸:", data.size);
+                        setFloatSize(data.size);
                     }
                     break;
 
@@ -183,16 +195,25 @@ export function useFloatWindow(options = {}) {
      * @param {string} size - 'SMALL' | 'NORMAL' | 'LARGE' | 'FULL'
      */
     const setFloatSize = (size) => {
-        if (!floatWinInstance.value) return;
+        debugLog("[Float] setFloatSize 被调用:", size);
+
+        if (!floatWinInstance.value) {
+            debugLog("[Float] setFloatSize 失败: 实例不存在");
+            return;
+        }
 
         const config = FLOAT_SIZES[size] || FLOAT_SIZES.NORMAL;
         const w = floatWinInstance.value.convertHtmlPxToAndroidPx(config.w);
         const h = floatWinInstance.value.convertHtmlPxToAndroidPx(config.h);
+
+        debugLog("[Float] 尺寸变更:", { size, w, h, currentSize: currentSize.value });
+
         floatWinInstance.value.setFixedWidthHeight(true, w, h);
         currentSize.value = size;
 
         // 需要调用 updateWindow 才能生效
         if (isPetShown.value) {
+            debugLog("[Float] 调用 updateWindow()");
             floatWinInstance.value.updateWindow();
         }
     };

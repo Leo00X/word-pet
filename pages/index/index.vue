@@ -214,6 +214,7 @@ import {
     getAndClearPendingGreeting 
 } from './composables/useGreeting.js';
 import { useAchievements } from './composables/useAchievements.js';
+import { usePetInteraction } from './composables/usePetInteraction.js';
 import { ref, computed, watch } from 'vue';
 
 // ========== 1. 初始化 Composables ==========
@@ -239,18 +240,34 @@ const terminal = useTerminal();
 // 1.6 权限系统
 const permissions = usePermissions();
 
-// 1.7 悬浮窗系统
-const floatWindow = useFloatWindow({
+// 1.7 悬浮窗系统（先创建引用，稍后设置回调）
+let floatWindow = null;
+let petInteraction = null;
+
+// 先初始化floatWindow（不带手势回调）
+floatWindow = useFloatWindow({
     onPermissionDenied: (type) => {
         permissions.requestPermission(type);
     },
     onPetInteraction: () => {
-        // 宠物互动逻辑 (interact方法会增加心情+2, 亲密度+1)
+        // 兼容旧版简单点击
         growth.interact();
-        // 记录成长日志 - val设为0避免末尾显示重复数字
         growthLog.addGrowthLog("互动 (心情+2, 亲密+1)", 0);
     },
+    onGestureEvent: (gestureData) => {
+        // [BUG#101 修复] 将手势事件转发给 usePetInteraction 处理
+        if (petInteraction && petInteraction.handleFloatMessage) {
+            petInteraction.handleFloatMessage(100, gestureData);
+        }
+    },
     addLog: terminal.addLog
+});
+
+// 1.7.1 [BUG#101 修复] 宠物互动系统（集成AI响应）
+petInteraction = usePetInteraction({
+    floatWindowInstance: floatWindow.floatWinInstance,
+    onSendToFloat: (type, msg) => floatWindow.sendMessageToFloat(type, msg),
+    addLog: (msg) => growthLog.addGrowthLog(msg, 0)
 });
 
 // 1.8 监控系统(集成成长和AI系统)
@@ -429,7 +446,7 @@ const handleTogglePet = () => {
     permissions.checkPermissions();
     floatWindow.togglePet(permissions.hasFloatPermission.value);
     
-    // 如果是开启悬浮窗，同步皮肤和待发送的问候
+    // [BUG#1 修复] 如果是开启悬浮窗，发送初始消息（问候或默认）
     setTimeout(() => {
         if (floatWindow.isPetShown.value) {
             // 同步当前皮肤到悬浮窗
@@ -441,10 +458,14 @@ const handleTogglePet = () => {
             // 检查是否有待发送的问候
             const pending = getAndClearPendingGreeting();
             if (pending) {
+                // 有待发送的问候，显示问候
                 floatWindow.sendMessageToFloat(1, pending);
+            } else {
+                // 无待发送问候，显示默认初始消息
+                floatWindow.sendMessageToFloat(1, 'WordParasite<br>已寄生...');
             }
         }
-    }, 500);
+    }, 1000);  // 增加延迟确保悬浮窗完全加载
 };
 
 /**

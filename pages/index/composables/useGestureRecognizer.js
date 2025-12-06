@@ -60,14 +60,20 @@ export function useGestureRecognizer(options = {}) {
         }
         lastGestureTime.value = now;
 
-        const { type, duration = 0, distance = 0, direction = '' } = event;
+        // [BUG#101 修复] 兼容两种事件格式:
+        // pet.html 发送: {event: "pet_clicked", state: "idle", ...}
+        // 新格式期望:   {type: "TAP", duration: 0, ...}
+        const eventType = event.type || event.event || 'UNKNOWN';
+        const { duration = 0, distance = 0, direction = '' } = event;
+
         let gestureType = GESTURE_TYPES.UNKNOWN;
         let confidence = 1.0;
         let additionalData = {};
 
         // 根据事件类型识别手势
-        switch (type) {
+        switch (eventType) {
             case 'pet_clicked':
+            case 'click':
             case 'TAP':
                 gestureType = GESTURE_TYPES.TAP;
                 break;

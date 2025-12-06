@@ -118,7 +118,7 @@ export function usePetInteraction(options = {}) {
                 // 简单手势：使用本地快速响应
                 const response = gestureRecognizer.getGestureResponse(
                     gestureType,
-                    growth.pet.value.mood
+                    growth.mood.value
                 );
                 sendResponseToFloat(response, action);
             } else if (gestureType === GESTURE_TYPES.DOUBLE_TAP) {
@@ -141,8 +141,8 @@ export function usePetInteraction(options = {}) {
         const context = {
             action: gestureType,
             gestureType,
-            mood: growth.pet.value.mood,
-            level: growth.pet.value.level,
+            mood: growth.mood.value,
+            level: growth.petLevel.value,
             studyMinutes: uni.getStorageSync('today_study_minutes') || 0
         };
 
@@ -194,7 +194,7 @@ export function usePetInteraction(options = {}) {
             case 'gesture_response':
                 const response = aiController.getLocalResponse(
                     data.gestureType || 'TAP',
-                    growth.pet.value.mood
+                    growth.mood.value
                 );
                 sendResponseToFloat(response.text, response);
                 break;
@@ -256,7 +256,7 @@ export function usePetInteraction(options = {}) {
         if (tickInterval) return;
         tickInterval = setInterval(() => {
             behaviorTree.tick({
-                mood: growth.pet.value.mood,
+                mood: growth.mood.value,
                 isMonitoring: uni.getStorageSync('IS_MONITORING') || false
             });
         }, 5000); // 每5秒 tick 一次
