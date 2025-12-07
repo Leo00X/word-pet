@@ -43,8 +43,12 @@
       <ConfigPanel 
         v-if="currentTab === 'config'"
         :monitorIntervalTime="monitor.monitorIntervalTime.value"
+        :randomChatEnabled="petInteraction.randomChat.enabled.value"
+        :randomChatHistoryCount="petInteraction.randomChat.chatHistory.value.length"
         @open-selector="openSelector"
         @interval-change="handleIntervalChange"
+        @toggle-random-chat="handleToggleRandomChat"
+        @open-random-history="openModal('randomHistory')"
         @open-terminal="terminal.showTerminal.value = true"
         @clear-chat="chat.clearMessages"
         @change-pet-type="handleChangePetType"
@@ -166,6 +170,20 @@
         <BackupPanel :cloudSync="cloudSync" />
       </view>
     </view>
+
+    <!-- 随机互动历史弹窗 -->
+    <view class="modal-overlay" v-if="showRandomHistoryModal" @tap="closeModal('randomHistory')">
+      <view class="modal-content history-modal" @tap.stop>
+        <view class="modal-header">
+          <text class="modal-title">📜 互动历史</text>
+          <text class="modal-close" @tap="closeModal('randomHistory')">✕</text>
+        </view>
+        <RandomChatHistory 
+          :history="petInteraction.randomChat.chatHistory.value"
+          @clear="handleClearRandomHistory"
+        />
+      </view>
+    </view>
   </view>
 </template>
 
@@ -192,6 +210,7 @@ import SkinSelector from './components/SkinSelector.vue';
 import WordGuessGame from './components/WordGuessGame.vue';
 import SkinMarket from './components/SkinMarket.vue';
 import BackupPanel from './components/BackupPanel.vue';
+import RandomChatHistory from './components/RandomChatHistory.vue';
 
 // 导入 Composables
 import { useGrowth } from './composables/useGrowth.js';
@@ -272,6 +291,7 @@ floatWindow = useFloatWindow({
 petInteraction = usePetInteraction({
     floatWindowInstance: floatWindow.floatWinInstance,
     growthInstance: growth,  // 注入共享实例
+    useChatIntegration: chat,  // [Phase 4] 随机互动消息同步到聊天面板
     onSendToFloat: (type, msg) => floatWindow.sendMessageToFloat(type, msg),
     addLog: (msg) => growthLog.addGrowthLog(msg, 0)
 });
@@ -316,6 +336,7 @@ const showSkinModal = computed(() => modals.skin);
 const showGameModal = computed(() => modals.game);
 const showMarketModal = computed(() => modals.market);
 const showBackupModal = computed(() => modals.backup);
+const showRandomHistoryModal = computed(() => modals.randomHistory);
 const userMessageCount = indexState.userMessageCount;
 
 // ========== 2.1 页面生命周期 ==========
@@ -344,7 +365,8 @@ const handlers = useIndexHandlers({
     achievements,
     memory,
     cloudSync,
-    indexState
+    indexState,
+    petInteraction
 });
 
 // 聊天事件处理（保留兼容）
@@ -370,6 +392,11 @@ const handlePetInteract = handlers.handlePetInteract;
 // 监控控制
 const handleToggleMonitor = handlers.handleToggleMonitor;
 const handleIntervalChange = handlers.handleIntervalChange;
+
+// 随机互动控制
+// 随机互动控制
+const handleToggleRandomChat = handlers.handleToggleRandomChat;
+const handleClearRandomHistory = handlers.handleClearRandomHistory;
 
 // 导航
 const openSelector = handlers.openSelector;

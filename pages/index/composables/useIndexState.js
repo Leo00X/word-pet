@@ -31,7 +31,8 @@ export function useIndexState(chat) {
         skin: false,          // 皮肤选择
         game: false,          // 小游戏
         market: false,        // 皮肤商城
-        backup: false         // 数据备份
+        backup: false,        // 数据备份
+        randomHistory: false  // 随机互动历史
     });
 
     // ========== 弹窗操作方法 ==========

@@ -40,7 +40,8 @@ export function useIndexHandlers(deps) {
         achievements,
         memory,
         cloudSync,
-        indexState  // useIndexState实例
+        indexState,  // useIndexState实例
+        petInteraction // 宠物互动实例
     } = deps;
 
     // ========== 宠物交互 ==========
@@ -88,7 +89,7 @@ export function useIndexHandlers(deps) {
         }, 500);
     };
 
-    // ========== 监控控制 ==========
+    // ========== 监控与智能控制 ==========
 
     /**
      * 切换监控状态
@@ -104,6 +105,32 @@ export function useIndexHandlers(deps) {
      */
     const handleIntervalChange = (value) => {
         monitor.updateMonitorInterval(value);
+    };
+
+    /**
+     * 切换随机互动功能
+     */
+    const handleToggleRandomChat = (enabled) => {
+        if (!petInteraction || !petInteraction.randomChat) return;
+
+        if (enabled) {
+            petInteraction.randomChat.enable();
+        } else {
+            petInteraction.randomChat.disable();
+        }
+
+        uni.showToast({
+            title: enabled ? '随机互动已开启' : '随机互动已关闭',
+            icon: 'none'
+        });
+    };
+
+    /**
+     * 清空随机互动历史
+     */
+    const handleClearRandomHistory = () => {
+        if (!petInteraction || !petInteraction.randomChat) return;
+        petInteraction.randomChat.clearHistory();
     };
 
     // ========== 聊天消息 ==========
@@ -345,9 +372,11 @@ export function useIndexHandlers(deps) {
         handlePetInteract,
         handleTogglePet,
 
-        // 监控控制
+        // 监控与智能控制
         handleToggleMonitor,
         handleIntervalChange,
+        handleToggleRandomChat,
+        handleClearRandomHistory,
 
         // 聊天消息
         handleSendMessage,

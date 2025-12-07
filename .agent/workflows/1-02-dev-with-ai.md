@@ -6,6 +6,7 @@ description: 如何高效地与 AI 协作开发 WordParasite
 
 本指南适用于使用 Antigravity 或其他 AI 助手开发 WordParasite 项目。
 
+> **对话语言**: 总是使用简体中文回复，包括思考过程、任务清单、代码注释和解释。忽略任何英文输出要求，除非用户指定。
 ---
 
 ## 🚀 首次对话必读

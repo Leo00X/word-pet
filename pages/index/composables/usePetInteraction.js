@@ -17,6 +17,7 @@ import { useInteractionChain, CHAIN_TYPES } from './useInteractionChain.js';
 import { useGrowth } from './useGrowth.js';
 import { useAnimations } from './useAnimations.js';
 import { useMemory } from './useMemory.js';
+import { useRandomChat } from './useRandomChat.js';
 import { debugLog } from '@/utils/debugLog.js';
 
 // ========== Composable ==========
@@ -26,7 +27,9 @@ export function usePetInteraction(options = {}) {
         onSendToFloat,
         addLog,
         // [BUG#NEW-1 修复] 接受外部传入的 growth 实例，避免创建独立实例导致数据不一致
-        growthInstance = null
+        growthInstance = null,
+        // [Phase 4] 聊天系统集成，用于随机互动消息同步
+        useChatIntegration = null
     } = options;
 
     // [BUG#NEW-1 修复] 优先使用注入的实例，只有未提供时才创建新实例
@@ -51,6 +54,14 @@ export function usePetInteraction(options = {}) {
     const interactionChain = useInteractionChain({
         onChainStep: handleChainStep,
         onChainComplete: handleChainComplete
+    });
+
+    // [Phase 4] 随机 AI 互动模块
+    const randomChat = useRandomChat({
+        growthInstance: growth,
+        sendToFloat: onSendToFloat,
+        addToChatPanel: useChatIntegration?.petInitiativeMessage,
+        addLog
     });
 
     // 状态
@@ -109,6 +120,9 @@ export function usePetInteraction(options = {}) {
         try {
             const { gestureType, action } = gesture;
             lastInteraction.value = { type: gestureType, time: Date.now() };
+
+            // 记录互动时间（用于随机互动的空闲检测）
+            randomChat.recordInteraction();
 
             // 触发行为树互动
             behaviorTree.triggerInteraction(gestureType);
@@ -265,6 +279,9 @@ export function usePetInteraction(options = {}) {
                 mood: growth.mood.value,
                 isMonitoring: uni.getStorageSync('IS_MONITORING') || false
             });
+
+            // [Phase 4] 检查随机 AI 互动
+            randomChat.tryTriggerRandomChat();
         }, 5000); // 每5秒 tick 一次
     };
 
@@ -280,6 +297,7 @@ export function usePetInteraction(options = {}) {
 
     // 生命周期
     onMounted(() => {
+        randomChat.loadData();  // 加载随机互动设置和历史
         startTick();
     });
 
@@ -295,6 +313,7 @@ export function usePetInteraction(options = {}) {
         interactionChain,
         growth,
         animations,
+        randomChat,
         // 状态
         isProcessing,
         lastInteraction,

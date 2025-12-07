@@ -63,6 +63,30 @@
       <text class="arrow">></text>
     </view>
 
+    <!-- 随机互动开关 -->
+    <view class="setting-item switch-item">
+      <view class="icon-box">🎲</view>
+      <view class="setting-text">
+        <text class="main-text">随机 AI 互动</text>
+        <text class="sub-text">宠物会主动找你聊天</text>
+      </view>
+      <switch 
+        :checked="randomChatEnabled" 
+        @change="handleRandomChatToggle"
+        color="#2ed573"
+      />
+    </view>
+
+    <!-- 随机互动历史 -->
+    <view class="setting-item" @click="$emit('open-random-history')">
+      <view class="icon-box">📜</view>
+      <view class="setting-text">
+        <text class="main-text">互动历史</text>
+        <text class="sub-text">查看宠物主动说话记录 ({{ randomChatHistoryCount }}条)</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-block">
       <text class="block-title">扫描频率 ({{ (monitorIntervalTime / 1000).toFixed(0) }} 秒/次)</text>
       <slider 
@@ -108,11 +132,22 @@ export default {
     monitorIntervalTime: {
       type: Number,
       default: 3000
+    },
+    randomChatEnabled: {
+      type: Boolean,
+      default: true
+    },
+    randomChatHistoryCount: {
+      type: Number,
+      default: 0
     }
   },
   methods: {
     handleIntervalChange(e) {
       this.$emit('interval-change', e.detail.value);
+    },
+    handleRandomChatToggle(e) {
+      this.$emit('toggle-random-chat', e.detail.value);
     },
     navigateToAISelector() {
       uni.navigateTo({
