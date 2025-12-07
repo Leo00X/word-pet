@@ -1,28 +1,99 @@
 /**
- * 这里是uni-app内置的常用样式变量
- *
+ * WordParasite 设计系统 v2.0
+ * 赛博朋克主题 + uni-app 变量
+ * 
  * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
  * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
- *
  */
 
-/**
- * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
- *
- * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
- */
+/* ========================================
+   🎨 赛博朋克主题色彩系统
+   ======================================== */
 
-/* 颜色变量 */
+/* 主色调 */
+$cyber-primary: #00d9ff;      // 青色 - 主要交互
+$cyber-secondary: #7b68ee;    // 紫色 - 次要交互
+$cyber-accent: #ff00ff;       // 品红 - 强调高亮
 
-/* 游戏主题色 */
-$bg-color: #1a1a2e;
-$card-bg: #16213e;
-$accent-red: #ff4757;
-$accent-green: #2ed573;
-$accent-yellow: #ffa502;
+/* 功能色 */
+$cyber-success: #00ff88;      // 霓虹绿 - 成功/学习
+$cyber-warning: #ffaa00;      // 橙色 - 警告
+$cyber-danger: #ff4757;       // 红色 - 危险/扣分
+
+/* 背景层级 (由深到浅) */
+$bg-deepest: #0a0e1a;         // 最深背景
+$bg-dark: #0f1526;            // 深色背景
+$bg-card: #1a2744;            // 卡片背景
+$bg-elevated: #2f3542;        // 抬升元素
+
+/* 文字色彩 */
+$text-bright: #ffffff;        // 最亮文字
+$text-light: #f1f2f6;         // 浅色文字
+$text-normal: #dfe4ea;        // 正常文字
+$text-dim: #747d8c;           // 暗淡文字
+$text-muted: #57606f;         // 静音文字
+
+/* ========================================
+   📏 间距系统 (8px 基准)
+   ======================================== */
+$space-xs: 4px;
+$space-sm: 8px;
+$space-md: 16px;
+$space-lg: 24px;
+$space-xl: 32px;
+$space-2xl: 48px;
+
+/* ========================================
+   🔲 圆角系统
+   ======================================== */
+$radius-xs: 4px;
+$radius-sm: 6px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-full: 9999px;
+
+/* ========================================
+   🌟 阴影系统
+   ======================================== */
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+$shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+/* 霓虹发光 */
+$shadow-glow-cyan: 0 0 15px rgba($cyber-primary, 0.4);
+$shadow-glow-purple: 0 0 15px rgba($cyber-secondary, 0.4);
+$shadow-glow-green: 0 0 15px rgba($cyber-success, 0.4);
+$shadow-glow-red: 0 0 15px rgba($cyber-danger, 0.4);
+
+/* ========================================
+   🌈 渐变预设
+   ======================================== */
+$gradient-cyber: linear-gradient(135deg, $cyber-primary, $cyber-secondary);
+$gradient-success: linear-gradient(135deg, $cyber-success, #1abc9c);
+$gradient-danger: linear-gradient(135deg, $cyber-danger, #ff6b6b);
+$gradient-warning: linear-gradient(135deg, $cyber-warning, #f39c12);
+$gradient-card: linear-gradient(180deg, $bg-card, $bg-dark);
+$gradient-gold: linear-gradient(135deg, #ffd700, #ffaa00);
+
+/* ========================================
+   ⏱️ 动画时间
+   ======================================== */
+$transition-fast: 0.15s;
+$transition-normal: 0.25s;
+$transition-slow: 0.4s;
+$ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+$ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+/* ========================================
+   🔙 兼容旧版变量 (Backward Compatibility)
+   ======================================== */
+$bg-color: $bg-card;
+$card-bg: $bg-card;
+$accent-red: $cyber-danger;
+$accent-green: $cyber-success;
+$accent-yellow: $cyber-warning;
 $accent-blue: #3742fa;
-$text-light: #f1f2f6;
-$text-dim: #747d8c;
 
 /* 行为相关颜色 */
 $uni-color-primary: #007aff;

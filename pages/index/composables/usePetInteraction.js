@@ -1,13 +1,14 @@
 /**
- * 宠物互动协调器 Composable (Phase 3 增强版)
- * 职责: 整合行为树、手势识别、AI控制、互动链，提供统一的互动接口
+ * 宠物互动协调器 Composable (Phase 4 增强版)
+ * 职责: 整合行为树、手势识别、AI控制、互动链、部位系统，提供统一的互动接口
  * 
  * 这是所有互动模块的"大脑"，协调各模块之间的通信
  * 
- * Phase 3: AI 增强集成
+ * Phase 4: 部位系统集成
+ * - 6 个可点击部位 (头/身体/四肢)
+ * - 部位点击触发 AI 响应
  * - 记忆系统传递给 AI 控制器
  * - 行为树状态感知
- * - 对话历史上下文
  */
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useBehaviorTree, ROOT_STATES } from './useBehaviorTree.js';
@@ -18,6 +19,7 @@ import { useGrowth } from './useGrowth.js';
 import { useAnimations } from './useAnimations.js';
 import { useMemory } from './useMemory.js';
 import { useRandomChat } from './useRandomChat.js';
+import { usePetParts } from './usePetParts.js';  // [Phase 4] 部位系统
 import { debugLog } from '@/utils/debugLog.js';
 
 // ========== Composable ==========
@@ -61,6 +63,15 @@ export function usePetInteraction(options = {}) {
         growthInstance: growth,
         sendToFloat: onSendToFloat,
         addToChatPanel: useChatIntegration?.petInitiativeMessage,
+        addLog
+    });
+
+    // [Phase 4] 部位系统
+    const petParts = usePetParts({
+        floatWindowInstance,
+        aiControllerInstance: aiController,
+        growthInstance: growth,
+        onSendToFloat,
         addLog
     });
 
@@ -235,15 +246,58 @@ export function usePetInteraction(options = {}) {
      * 处理悬浮窗消息
      */
     const handleFloatMessage = (type, data) => {
-        // 解析手势事件
+        // 解析手势/部位事件
         if (type === 1 || type === 3 || type === 4 || type === 100) {
             try {
                 const event = typeof data === 'string' ? JSON.parse(data) : data;
+
+                // [Phase 4] 部位点击处理
+                if (event.gesture === 'PART_TAP' && event.part) {
+                    debugLog('[Interaction] 部位点击:', event.part);
+                    petParts.handlePartInteraction(event.part, event);
+                    return;
+                }
+
+                // [Phase 4] 部位长按处理
+                if (event.gesture === 'PART_LONG_PRESS' && event.part) {
+                    debugLog('[Interaction] 部位长按:', event.part);
+                    petParts.handlePartInteraction(event.part, { ...event, isLongPress: true });
+                    return;
+                }
+
+                // 常规手势处理
                 gestureRecognizer.parseGestureEvent(event);
             } catch (e) {
                 debugLog('[Interaction] 消息解析失败:', e);
             }
         }
+    };
+
+    /**
+     * [Phase 4] 切换到分层模式
+     */
+    const enablePartedMode = (parts = null) => {
+        if (onSendToFloat) {
+            onSendToFloat(97, JSON.stringify({
+                action: 'parted_mode',
+                enabled: true,
+                parts: parts
+            }));
+        }
+        debugLog('[Interaction] 已启用分层模式');
+    };
+
+    /**
+     * [Phase 4] 切换到单一模式
+     */
+    const disablePartedMode = () => {
+        if (onSendToFloat) {
+            onSendToFloat(97, JSON.stringify({
+                action: 'parted_mode',
+                enabled: false
+            }));
+        }
+        debugLog('[Interaction] 已禁用分层模式');
     };
 
     /**
@@ -299,6 +353,15 @@ export function usePetInteraction(options = {}) {
     onMounted(() => {
         randomChat.loadData();  // 加载随机互动设置和历史
         startTick();
+
+        // [Phase 4] 恢复分层模式状态
+        const partedMode = uni.getStorageSync('pet_parted_mode');
+        if (partedMode) {
+            // 延迟一点以确保 WebView 就绪
+            setTimeout(() => {
+                enablePartedMode();
+            }, 1000);
+        }
     });
 
     onUnmounted(() => {
@@ -314,6 +377,7 @@ export function usePetInteraction(options = {}) {
         growth,
         animations,
         randomChat,
+        petParts,  // [Phase 4] 部位系统
         // 状态
         isProcessing,
         lastInteraction,
@@ -323,6 +387,10 @@ export function usePetInteraction(options = {}) {
         triggerStudyReward,
         triggerFishWarning,
         startTick,
-        stopTick
+        stopTick,
+        // [Phase 4] 分层模式
+        enablePartedMode,
+        disablePartedMode
     };
 }
+

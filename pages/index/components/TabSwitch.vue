@@ -58,26 +58,51 @@ export default {
 <style lang="scss" scoped>
 .tab-switch {
   display: flex;
-  background: #0f1526;
-  border-radius: 8px;
+  background: linear-gradient(180deg, $bg-dark, darken($bg-dark, 3%));
+  border-radius: $radius-md;
   padding: 4px;
   margin-bottom: 20px;
+  position: relative;
+  border: 1px solid rgba($cyber-primary, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .tab-btn {
   flex: 1;
   text-align: center;
-  padding: 10px 0;
+  padding: 12px 0;
   font-size: 11px;
-  border-radius: 6px;
-  color: #747d8c;
-  transition: all 0.2s;
+  border-radius: $radius-sm;
+  color: $text-dim;
+  transition: all $transition-normal $ease-smooth;
+  position: relative;
+  z-index: 1;
+  
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #2f3542, #1a2744);
-  color: #00d9ff;
+  background: linear-gradient(135deg, rgba($bg-elevated, 0.9), rgba($bg-card, 0.9));
+  color: $cyber-primary;
   font-weight: bold;
-  box-shadow: 0 2px 8px rgba(0, 217, 255, 0.15);
+  box-shadow: 
+    0 2px 8px rgba($cyber-primary, 0.2),
+    0 0 0 1px rgba($cyber-primary, 0.15);
+  
+  // 底部霓虹指示线
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: $gradient-cyber;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba($cyber-primary, 0.5);
+  }
 }
 </style>

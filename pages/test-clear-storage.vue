@@ -51,7 +51,7 @@ function initStorage() {
           type: 'deepseek',
           icon: '🧠',
           description: '高性能对话模型',
-          apiKey: 'sk-450792972278576f8ed953548a6365cbf26d56e5487c66c46116b326f72b98e5',
+          apiKey: 'sk-fa0abda2e61328d740c500df3da61efebde48eefb5ba35df9472bc1fc60c41c4',
           baseUrl: 'https://api.qnaigc.com/v1/chat/completions',
           modelId: 'deepseek/deepseek-v3.2-251201',
           isPreset: true

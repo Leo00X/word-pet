@@ -15,6 +15,133 @@ const ADAPTER_MAP = {
 };
 
 /**
+ * 获取所有配置了 API Key 的可用模型
+ * @param {String} preferredType - 优先模型类型 (可选)
+ * @returns {Array} 按优先级排序的模型列表
+ */
+function getAvailableModels(preferredType = null) {
+    const config = getSecureStorage('ai_config');
+    if (!config) return [];
+
+    const allModels = [
+        ...(config.presetModels || []),
+        ...(config.customModels || [])
+    ];
+
+    // 过滤出有 API Key 的模型
+    const availableModels = allModels.filter(m => m.apiKey && m.apiKey.length > 0);
+
+    // 如果指定了优先类型，将该类型的模型排在前面
+    if (preferredType) {
+        availableModels.sort((a, b) => {
+            const aMatch = a.type === preferredType || a.id?.includes(preferredType) || a.name?.toLowerCase().includes(preferredType);
+            const bMatch = b.type === preferredType || b.id?.includes(preferredType) || b.name?.toLowerCase().includes(preferredType);
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+            return 0;
+        });
+    }
+
+    return availableModels;
+}
+
+/**
+ * Promise 超时包装器
+ * @param {Promise} promise - 原始 Promise
+ * @param {Number} ms - 超时毫秒数
+ * @returns {Promise} 带超时的 Promise
+ */
+function withTimeout(promise, ms) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error(`请求超时 (${ms}ms)`));
+        }, ms);
+
+        promise
+            .then(result => {
+                clearTimeout(timer);
+                resolve(result);
+            })
+            .catch(err => {
+                clearTimeout(timer);
+                reject(err);
+            });
+    });
+}
+
+/**
+ * 带自动重试和模型轮询的 AI 调用
+ * 当一个模型超时或出错时，自动切换到下一个可用模型
+ * 
+ * @param {String} userMessage - 用户消息
+ * @param {String} systemPrompt - 系统提示词
+ * @param {Object} options - 配置项
+ *   - timeout: 超时时间 (ms)，默认 15000
+ *   - preferredType: 优先模型类型 (如 'gemini', 'deepseek')
+ *   - onModelSwitch: 模型切换回调 (modelName, currentIndex, totalCount)
+ *   - history: 历史消息数组
+ * @returns {Promise<String>} AI 回复
+ */
+export async function chatWithFallback(userMessage, systemPrompt, options = {}) {
+    const {
+        timeout = 15000,
+        preferredType = null,
+        onModelSwitch = null,
+        history = []
+    } = options;
+
+    // 获取所有可用模型
+    const models = getAvailableModels(preferredType);
+
+    if (models.length === 0) {
+        throw new Error('没有可用的 AI 模型，请先配置 API Key');
+    }
+
+    console.log(`[AI Fallback] 共有 ${models.length} 个可用模型: ${models.map(m => m.name).join(', ')}`);
+
+    const errors = [];
+
+    // 依次尝试每个模型
+    for (let i = 0; i < models.length; i++) {
+        const model = models[i];
+        const AdapterClass = ADAPTER_MAP[model.type];
+
+        if (!AdapterClass) {
+            console.warn(`[AI Fallback] 跳过不支持的模型类型: ${model.type}`);
+            continue;
+        }
+
+        // 触发模型切换回调
+        if (onModelSwitch) {
+            onModelSwitch(model.name, i + 1, models.length);
+        }
+
+        console.log(`[AI Fallback] 尝试模型 ${i + 1}/${models.length}: ${model.name}`);
+
+        try {
+            const adapter = new AdapterClass(model);
+            const result = await withTimeout(
+                adapter.chat(userMessage, systemPrompt, history),
+                timeout
+            );
+
+            console.log(`[AI Fallback] ${model.name} 调用成功`);
+            return result;
+        } catch (error) {
+            const errorMsg = error.message || error.error?.message || '未知错误';
+            console.warn(`[AI Fallback] ${model.name} 失败: ${errorMsg}`);
+            errors.push({ model: model.name, error: errorMsg });
+
+            // 如果是最后一个模型，抛出所有错误信息
+            if (i === models.length - 1) {
+                const allErrors = errors.map(e => `${e.model}: ${e.error}`).join('; ');
+                throw new Error(`所有模型都失败了 - ${allErrors}`);
+            }
+        }
+    }
+}
+
+/**
  * 获取当前激活的 AI 配置
  * @returns {Object} AI 配置对象，如果未配置返回默认值
  */

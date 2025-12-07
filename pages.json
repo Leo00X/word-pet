@@ -34,6 +34,26 @@
 			"style": {
 				"navigationBarStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/test-clear-storage",
+			"style": {
+				"navigationBarTitleText": "Storage 修复工具",
+				"navigationBarBackgroundColor": "#1e272e",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/personality/personality",
+			"style": {
+				"navigationBarStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/debug/cognitive",
+			"style": {
+				"navigationBarStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

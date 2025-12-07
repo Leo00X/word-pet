@@ -3,6 +3,77 @@
 
 ---
 
+## 🎮 2025-12-07 (深夜) - 悬浮窗宠物部位系统
+
+### ✨ 重大新功能
+
+**分层宠物系统 (Phase 4)**:
+- 宠物从单一 Emoji 升级为 **6 个可交互部位**
+- 支持部位：头部、身体、左手、右手、左脚、右脚
+- 每个部位可独立点击/长按，触发不同 AI 响应
+- 部位动画：摇头、点头、挥手、击掌、踢腿、跺脚
+
+**技术架构**:
+- 新增 `usePetParts.js` Composable (240行)
+  - 部位配置与 AI Prompt 模板
+  - 心情/亲密度变化计算
+  - 触摸统计和持久化
+- `pet.html` 分层宠物支持 (+310行)
+  - CSS 部位定位与动画 (+160行)
+  - HTML 6部位结构 (+22行)
+  - JS 部位点击检测 (+130行)
+- `usePetInteraction.js` 集成部位系统 (+40行)
+
+**皮肤系统扩展**:
+- 新增 `static/skins/default-ghost/` 目录
+- 创建 `skin.json` 分层皮肤配置文件
+- 支持 Emoji 和图片双模式部位资源
+
+**消息协议扩展**:
+- 类型 97: 切换分层模式
+- 类型 98: 部位动画指令 (扩展)
+- 类型 100: 部位点击事件 (PART_TAP / PART_LONG_PRESS)
+
+**相关文件**:
+- `pages/index/composables/usePetParts.js` (新建)
+- `pages/index/composables/usePetInteraction.js` (修改)
+- `static/pet.html` (大幅修改)
+- `static/skins/default-ghost/skin.json` (新建)
+
+---
+
+## 🎉 2025-12-07 (晚间) - AI 系统增强 + Bug 修复
+
+### ✨ 新增功能
+
+**日记 AI 自动降级系统**:
+- 新增 `chatWithFallback()` 方法
+- 15秒超时自动切换下一个 AI 模型
+- 轮询所有已配置的可用模型
+- 优先使用 Gemini 系列
+
+**向量记忆系统 (HCDS Phase 5)**:
+- 新增 `useVectorMemory.js` Composable
+- 集成到 index.vue
+
+**每日心情记录**:
+- 新增 `todayMoodStart` 状态
+- 自动跨天检测和重置
+- 日记面板显示真实心情变化
+
+### 🐛 Bug 修复
+
+- **API Key 加密问题**: 使用 `WPEN_` 前缀可靠识别加密数据
+- **日记心情数据**: 修复 moodStart 硬编码为 50 的问题
+
+**相关文件**:
+- `utils/aiService.js` - 新增 chatWithFallback、getAvailableModels、withTimeout
+- `utils/encryptStorage.js` - 修复加密识别逻辑
+- `composables/useGrowth.js` - 新增 todayMoodStart、checkDayChange
+- `composables/useVectorMemory.js` - 向量记忆系统（新建）
+
+---
+
 ## 🎉 2025-12-07 - 代码质量审查与重构完成
 
 ### ✅ 代码审查
@@ -232,4 +303,4 @@ const url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/comple
 
 ---
 
-**最后更新**: 2025年12月6日
+**最后更新**: 2025年12月7日

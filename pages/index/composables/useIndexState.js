@@ -27,12 +27,13 @@ export function useIndexState(chat) {
 
     // ========== 弹窗状态（集中管理）==========
     const modals = reactive({
-        achievement: false,   // 成就弹窗
-        skin: false,          // 皮肤选择
-        game: false,          // 小游戏
-        market: false,        // 皮肤商城
-        backup: false,        // 数据备份
-        randomHistory: false  // 随机互动历史
+        achievement: false,    // 成就弹窗
+        skin: false,           // 皮肤选择
+        game: false,           // 小游戏
+        market: false,         // 皮肤商城
+        backup: false,         // 数据备份
+        randomHistory: false,  // 随机互动历史
+        personality: false     // 人格面板(HCDS)
     });
 
     // ========== 弹窗操作方法 ==========

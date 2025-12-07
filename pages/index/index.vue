@@ -16,7 +16,7 @@
       :hunger="growth.hunger.value"
       :bond="growth.bond.value"
       :petEmoji="(growth && growth.petDisplay && growth.petDisplay.value) ? growth.petDisplay.value.emoji : '👻'"
-      @interact="handlePetInteract"
+      @interact="handlers.handlePetInteract"
     />
 
     <!-- 控制器区域 -->
@@ -33,9 +33,9 @@
         :isMonitoring="monitor.isMonitoring.value"
         :growthLogs="growthLog.growthLogs.value"
         :achievementProgress="achievements.progress.value.percent"
-        @toggle-pet="handleTogglePet"
-        @toggle-monitor="handleToggleMonitor"
-        @open-history="openHistory"
+        @toggle-pet="handlers.handleTogglePet"
+        @toggle-monitor="handlers.handleToggleMonitor"
+        @open-history="handlers.openHistory"
         @open-achievements="openModal('achievement')"
       />
 
@@ -45,13 +45,15 @@
         :monitorIntervalTime="monitor.monitorIntervalTime.value"
         :randomChatEnabled="petInteraction.randomChat.enabled.value"
         :randomChatHistoryCount="petInteraction.randomChat.chatHistory.value.length"
-        @open-selector="openSelector"
-        @interval-change="handleIntervalChange"
-        @toggle-random-chat="handleToggleRandomChat"
+        :partedModeEnabled="partedModeEnabled"
+        @open-selector="handlers.openSelector"
+        @interval-change="handlers.handleIntervalChange"
+        @toggle-random-chat="handlers.handleToggleRandomChat"
+        @toggle-parted-mode="(val) => { partedModeEnabled = val; handlers.handleTogglePartedMode(val) }"
         @open-random-history="openModal('randomHistory')"
         @open-terminal="terminal.showTerminal.value = true"
         @clear-chat="chat.clearMessages"
-        @change-pet-type="handleChangePetType"
+        @change-pet-type="handlers.handleChangePetType"
         @open-skin-selector="openModal('skin')"
         @open-skin-market="openModal('market')"
         @open-backup="openModal('backup')"
@@ -75,7 +77,7 @@
       <BackpackPanel
         v-if="currentTab === 'backpack'"
         :coins="growth ? growth.coins.value : 0"
-        @use-item="handleUseItem"
+        @use-item="handlers.handleUseItem"
       />
       
       <!-- 日记面板 -->
@@ -84,12 +86,12 @@
         :studyMinutes="growth ? growth.todayStudyTime.value : 0"
         :slackMinutes="growth ? growth.todayIdleTime.value : 0"
         :chatCount="userMessageCount"
-        :moodStart="50"
+        :moodStart="growth ? growth.todayMoodStart.value : 50"
         :moodEnd="growth ? growth.mood.value : 50"
         :level="growth ? growth.petLevel.value : 1"
         :events="growthLog.growthLogs.value ? growthLog.growthLogs.value.slice(0, 5).map(l => l.msg) : []"
         :appRanking="monitor.getAppRanking(5)"
-        @write-diary="handleWriteDiary"
+        @write-diary="handlers.handleWriteDiary"
       />
     </view>
 
@@ -131,7 +133,7 @@
           :downloadProgress="skins.downloadProgress.value"
           :isLoading="skins.isLoading.value"
           :showOnlineSection="false"
-          @select="handleSkinSelect"
+          @select="handlers.handleSkinSelect"
           @refresh-online="skins.fetchOnlineSkins"
           @download="skins.downloadSkin"
         />
@@ -142,7 +144,7 @@
     <WordGuessGame 
       :visible="showGameModal"
       @close="closeModal('game')"
-      @game-end="handleGameEnd"
+      @game-end="handlers.handleGameEnd"
     />
 
     <!-- 皮肤商城弹窗 -->
@@ -155,7 +157,7 @@
         <SkinMarket 
           :coins="growth.coins.value"
           :ownedSkins="skins.localSkins.value.map(s => s.id)"
-          @purchase="handleSkinPurchase"
+          @purchase="handlers.handleSkinPurchase"
         />
       </view>
     </view>
@@ -180,7 +182,7 @@
         </view>
         <RandomChatHistory 
           :history="petInteraction.randomChat.chatHistory.value"
-          @clear="handleClearRandomHistory"
+          @clear="handlers.handleClearRandomHistory"
         />
       </view>
     </view>
@@ -192,7 +194,7 @@
  * 主页面 - 电子宠物游戏容器
  * 职责:仅作为容器组装组件,所有业务逻辑由 composables 管理
  */
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import { logUserAction } from '@/utils/debugLog.js';
 
 // 导入组件(使用 easycom 自动导入,此处为显式声明)
@@ -234,6 +236,9 @@ import {
 } from './composables/useGreeting.js';
 import { useAchievements } from './composables/useAchievements.js';
 import { usePetInteraction } from './composables/usePetInteraction.js';
+import { usePersonality } from './composables/usePersonality.js';
+import { useReflection } from './composables/useReflection.js';
+import { useVectorMemory } from './composables/useVectorMemory.js';
 import { usePageLifecycle } from './composables/usePageLifecycle.js';
 import { useChatHandlers } from './composables/useChatHandlers.js';
 import { useIndexState } from './composables/useIndexState.js';
@@ -241,65 +246,47 @@ import { useIndexHandlers } from './composables/useIndexHandlers.js';
 import { ref, computed, watch } from 'vue';
 
 // ========== 1. 初始化 Composables ==========
-
-// 1.1 成长系统
 const growth = useGrowth();
-
-// 1.2 成长日志系统
 const growthLog = useGrowthLog();
-
-// 1.3 成就系统
 const achievements = useAchievements();
-
-// 1.3 AI系统
+const personality = usePersonality();  // HCDS Phase 1
+const reflection = useReflection();    // HCDS Phase 3
+const vectorMemory = useVectorMemory(); // HCDS Phase 5
 const ai = useAI();
-
-// 1.4 聊天系统
 const chat = useChat();
-
-// 1.5 终端日志系统
 const terminal = useTerminal();
-
-// 1.6 权限系统
 const permissions = usePermissions();
 
-// 1.7 悬浮窗系统（先创建引用，稍后设置回调）
+// 悬浮窗和宠物互动
 let floatWindow = null;
 let petInteraction = null;
 
-// 先初始化floatWindow（不带手势回调）
 floatWindow = useFloatWindow({
-    onPermissionDenied: (type) => {
-        permissions.requestPermission(type);
-    },
+    onPermissionDenied: (type) => permissions.requestPermission(type),
     onPetInteraction: () => {
-        // 兼容旧版简单点击
         growth.interact();
         growthLog.addGrowthLog("互动 (心情+2, 亲密+1)", 0);
     },
     onGestureEvent: (gestureData) => {
-        // [BUG#101 修复] 将手势事件转发给 usePetInteraction 处理
-        if (petInteraction && petInteraction.handleFloatMessage) {
+        if (petInteraction?.handleFloatMessage) {
             petInteraction.handleFloatMessage(100, gestureData);
         }
     },
     addLog: terminal.addLog
 });
 
-// 1.7.1 [BUG#101 修复] 宠物互动系统（集成AI响应）
-// [BUG#NEW-1 修复] 传入共享的 growth 实例，避免数据不一致
 petInteraction = usePetInteraction({
     floatWindowInstance: floatWindow.floatWinInstance,
-    growthInstance: growth,  // 注入共享实例
-    useChatIntegration: chat,  // [Phase 4] 随机互动消息同步到聊天面板
+    growthInstance: growth,
+    useChatIntegration: chat,
     onSendToFloat: (type, msg) => floatWindow.sendMessageToFloat(type, msg),
     addLog: (msg) => growthLog.addGrowthLog(msg, 0)
 });
 
-// 1.8 监控系统(集成成长和AI系统)
+// 监控系统
 const monitor = useMonitor({
     useGrowthIntegration: growth,
-    useGrowthLogIntegration: growthLog,  // 添加日志集成
+    useGrowthLogIntegration: growthLog,
     useAIIntegration: ai,
     useChatIntegration: chat,  // 添加聊天集成，消息同步到对话
     sendToFloat: floatWindow.sendMessageToFloat,
@@ -309,21 +296,10 @@ const monitor = useMonitor({
     addLog: terminal.addLog
 });
 
-// 1.9 皮肤系统
-const skins = useSkins({
-    growthInstance: growth,
-    floatWindowInstance: floatWindow
-});
-
-// 1.10 动画系统
-const animations = useAnimations({
-    floatWindowInstance: floatWindow
-});
-
-// 1.11 AI记忆系统
+// 周边系统
+const skins = useSkins({ growthInstance: growth, floatWindowInstance: floatWindow });
+const animations = useAnimations({ floatWindowInstance: floatWindow });
 const memory = useMemory();
-
-// 1.12 云同步服务
 const cloudSync = useCloudSync();
 
 // ========== 2. 页面状态（使用 useIndexState）==========
@@ -338,6 +314,9 @@ const showMarketModal = computed(() => modals.market);
 const showBackupModal = computed(() => modals.backup);
 const showRandomHistoryModal = computed(() => modals.randomHistory);
 const userMessageCount = indexState.userMessageCount;
+
+// 分层宠物模式状态
+const partedModeEnabled = ref(uni.getStorageSync('pet_parted_mode') || false);
 
 // ========== 2.1 页面生命周期 ==========
 const lifecycle = usePageLifecycle({
@@ -369,119 +348,146 @@ const handlers = useIndexHandlers({
     petInteraction
 });
 
-// 聊天事件处理（保留兼容）
+// 聊天事件处理（HCDS 集成）
 const chatHandlers = useChatHandlers({
     chat,
     ai,
     growth,
+    personality,     // HCDS Phase 1
+    memory,          // HCDS Phase 2
+    reflection,      // HCDS Phase 3
+    vectorMemory,    // HCDS Phase 5
     onCheckAchievements: () => lifecycle.checkAchievements()
 });
 
 // ========== 3. 生命周期 ==========
-onShow(() => lifecycle.initializePage());
+const wasPetShown = ref(false);
 
-// 兼容性别名
+onShow(() => {
+    lifecycle.initializePage();
+    // 恢复悬浮窗状态（如果之前是被我们隐藏的）
+    if (wasPetShown.value && floatWindow) {
+        floatWindow.reinitInstance(); // 确保实例存在
+        floatWindow.showFloatWindow(true);
+        wasPetShown.value = false;
+    }
+});
+
+onHide(() => {
+    // 页面隐藏时，如果悬浮窗显示则隐藏并标记
+    if (floatWindow && floatWindow.isPetShown.value) {
+        wasPetShown.value = true;
+        floatWindow.hideFloatWindow();
+    }
+});
+
+// 兼容性别名（lifecycle 需要在模板中使用）
 const checkAchievements = () => lifecycle.checkAchievements();
 
-// ========== 4. 事件处理器（委托给 handlers/chatHandlers）==========
+// ========== 4. 事件处理器 ==========
+// 注意：大部分处理器直接在 template 中使用 handlers.xxx 和 chatHandlers.xxx
+// 以下仅保留需要特殊处理或兼容性的别名
 
-// 宠物交互
-const handleTogglePet = handlers.handleTogglePet;
-const handlePetInteract = handlers.handlePetInteract;
-
-// 监控控制
-const handleToggleMonitor = handlers.handleToggleMonitor;
-const handleIntervalChange = handlers.handleIntervalChange;
-
-// 随机互动控制
-// 随机互动控制
-const handleToggleRandomChat = handlers.handleToggleRandomChat;
-const handleClearRandomHistory = handlers.handleClearRandomHistory;
-
-// 导航
-const openSelector = handlers.openSelector;
-const openHistory = handlers.openHistory;
-const handleChangePetType = handlers.handleChangePetType;
-
-// 皮肤/游戏
-const handleSkinSelect = handlers.handleSkinSelect;
-const handleSkinPurchase = handlers.handleSkinPurchase;
-const handleUseItem = handlers.handleUseItem;
-const handleGameEnd = handlers.handleGameEnd;
-
-// 聊天（委托给 chatHandlers）
+// 聊天相关（chatHandlers 需要拆开使用）
 const handleUserInputUpdate = chatHandlers.handleUserInputUpdate;
 const handleSendMessage = chatHandlers.handleSendMessage;
 const handleQuickReply = chatHandlers.handleQuickReply;
-
-// 日记
-const handleWriteDiary = handlers.handleWriteDiary;
 </script>
 
 <style lang="scss">
-$bg-color: #1a1a2e;
-$bg-main: #1a1a2e;
-$card-bg: #16213e;
-$text-light: #f1f2f6;
-
 .game-container {
-  background-color: $bg-color;
+  background: linear-gradient(180deg, $bg-card 0%, $bg-deepest 100%);
   min-height: 100vh;
-  padding: 20px;
+  padding: $space-lg;
   font-family: monospace;
   color: $text-light;
 }
 
 /* 控制器区域 */
 .controller-area {
-  background: $card-bg;
-  border-radius: 15px;
-  padding: 15px;
-  box-shadow: 0 5px 0 #0f1526;
+  background: linear-gradient(180deg, $bg-card, darken($bg-card, 5%));
+  border-radius: $radius-lg;
+  padding: $space-md;
+  box-shadow: 0 5px 0 $bg-deepest, $shadow-md;
+  border: 1px solid rgba($cyber-primary, 0.08);
 }
 
-/* 模态框样式 */
+/* ========================================
+   模态框样式 + 动画
+   ======================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba($bg-deepest, 0.9);
+  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: fadeIn $transition-normal ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
   width: 90%;
   max-width: 400px;
-  background: $bg-main;
-  border-radius: 16px;
+  background: linear-gradient(180deg, $bg-card, $bg-dark);
+  border-radius: $radius-lg;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba($cyber-primary, 0.15),
+    $shadow-glow-cyan;
+  animation: slideUp 0.35s $ease-bounce;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: $space-md;
+  background: linear-gradient(135deg, rgba($cyber-primary, 0.08), rgba($cyber-secondary, 0.08));
+  border-bottom: 1px solid rgba($cyber-primary, 0.2);
 }
 
 .modal-title {
   font-size: 16px;
   font-weight: bold;
-  color: #ffd700;
+  background: $gradient-gold;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .modal-close {
-  font-size: 20px;
-  color: #747d8c;
-  padding: 5px 10px;
+  font-size: 22px;
+  color: $text-dim;
+  padding: 6px 12px;
+  border-radius: $radius-sm;
+  transition: all $transition-fast;
+  
+  &:active {
+    background: rgba($cyber-danger, 0.15);
+    color: $cyber-danger;
+  }
 }
 
 .achievement-modal {
@@ -505,5 +511,11 @@ $text-light: #f1f2f6;
   width: 95%;
   max-width: 380px;
   overflow-y: auto;
+}
+
+.history-modal {
+  max-height: 85vh;
+  width: 95%;
+  max-width: 400px;
 }
 </style>

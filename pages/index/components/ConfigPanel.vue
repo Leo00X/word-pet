@@ -54,6 +54,25 @@
       <text class="arrow">></text>
     </view>
 
+    <view class="setting-item" @click="navigateToPersonality">
+      <view class="icon-box">🎭</view>
+      <view class="setting-text">
+        <text class="main-text">宠物人格</text>
+        <text class="sub-text">动态性格·演化历史</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
+    <!-- 认知核心 (HCDS) -->
+    <view class="setting-item" @tap="navigateToCognitive">
+      <view class="icon-box">🧠</view>
+      <view class="setting-text">
+        <text class="main-text">认知核心</text>
+        <text class="sub-text">记忆·思维·向量引擎</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-item" @click="$emit('open-backup')">
       <view class="icon-box">☁️</view>
       <view class="setting-text">
@@ -85,6 +104,20 @@
         <text class="sub-text">查看宠物主动说话记录 ({{ randomChatHistoryCount }}条)</text>
       </view>
       <text class="arrow">></text>
+    </view>
+
+    <!-- 分层宠物模式开关 -->
+    <view class="setting-item switch-item">
+      <view class="icon-box">🧩</view>
+      <view class="setting-text">
+        <text class="main-text">分层宠物模式</text>
+        <text class="sub-text">启用头/身体/四肢部位交互</text>
+      </view>
+      <switch 
+        :checked="partedModeEnabled" 
+        @change="handlePartedModeToggle"
+        color="#ff66cc"
+      />
     </view>
 
     <view class="setting-block">
@@ -140,6 +173,10 @@ export default {
     randomChatHistoryCount: {
       type: Number,
       default: 0
+    },
+    partedModeEnabled: {
+      type: Boolean,
+      default: false
     }
   },
   methods: {
@@ -148,6 +185,9 @@ export default {
     },
     handleRandomChatToggle(e) {
       this.$emit('toggle-random-chat', e.detail.value);
+    },
+    handlePartedModeToggle(e) {
+      this.$emit('toggle-parted-mode', e.detail.value);
     },
     navigateToAISelector() {
       uni.navigateTo({
@@ -187,6 +227,16 @@ export default {
         }
       });
     },
+    navigateToPersonality() {
+      uni.navigateTo({
+        url: '/pages/personality/personality'
+      });
+    },
+    navigateToCognitive() {
+      uni.navigateTo({
+        url: '/pages/debug/cognitive'
+      });
+    },
     // 开发者测试：快速升10级
     quickLevelUp() {
       for (let i = 0; i < 10; i++) {
@@ -210,21 +260,37 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$text-dim: #747d8c;
-
-/* 配置项 */
 .setting-item {
   display: flex; 
   align-items: center;
-  background: #2f3542;
-  padding: 12px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba($bg-elevated, 0.8), rgba($bg-card, 0.8));
+  padding: 14px;
+  border-radius: $radius-md;
   margin-bottom: 10px;
+  border: 1px solid rgba($cyber-primary, 0.08);
+  transition: all $transition-normal $ease-smooth;
+  
+  &:active {
+    transform: scale(0.98);
+    background: rgba($cyber-primary, 0.08);
+    border-color: rgba($cyber-primary, 0.25);
+  }
+}
+
+.switch-item {
+  &:active {
+    transform: none;
+  }
 }
 
 .icon-box { 
-  font-size: 20px; 
-  margin-right: 12px; 
+  font-size: 22px; 
+  margin-right: 14px;
+  transition: transform $transition-normal $ease-bounce;
+}
+
+.setting-item:active .icon-box {
+  transform: scale(1.15);
 }
 
 .setting-text { 
@@ -235,77 +301,106 @@ $text-dim: #747d8c;
 
 .main-text { 
   font-size: 14px; 
-  font-weight: bold; 
+  font-weight: bold;
+  color: $text-light;
 }
 
 .sub-text { 
   font-size: 10px; 
   color: $text-dim; 
-  margin-top: 2px; 
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
 }
 
 .arrow { 
-  color: $text-dim; 
+  color: $text-dim;
+  font-size: 14px;
+  transition: transform $transition-fast;
+}
+
+.setting-item:active .arrow {
+  transform: translateX(3px);
 }
 
 .setting-block { 
-  background: #2f3542; 
-  padding: 12px; 
-  border-radius: 8px; 
-  margin-top: 20px; 
+  background: linear-gradient(180deg, rgba($bg-elevated, 0.9), rgba($bg-card, 0.7));
+  padding: 14px; 
+  border-radius: $radius-md; 
+  margin-top: $space-lg;
+  border: 1px solid rgba($cyber-primary, 0.1);
 }
 
 .block-title { 
   display: block; 
   font-size: 12px; 
   color: $text-dim; 
-  margin-bottom: 10px; 
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
 }
 
 .game-btn {
   border: none;
-  border-radius: 8px;
+  border-radius: $radius-md;
   font-weight: bold;
   color: #fff;
-  box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+  transition: all $transition-fast $ease-smooth;
+
+  &:active {
+    transform: translateY(4px);
+    box-shadow: none;
+  }
 }
 
 .terminal-btn { 
-  background: #2f3542; 
-  border: 1px solid #57606f; 
-  margin-top: 20px; 
-  font-size: 12px; 
+  background: linear-gradient(135deg, rgba($bg-elevated, 0.9), rgba($bg-dark, 0.9));
+  border: 1px solid rgba($cyber-primary, 0.3);
+  margin-top: $space-lg; 
+  font-size: 12px;
+  color: $cyber-primary;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2), $shadow-glow-cyan;
 }
 
 .clear-btn {
-  background: #ff4757;
+  background: $gradient-danger;
   margin-top: 12px;
   font-size: 12px;
+  box-shadow: 0 4px 0 darken($cyber-danger, 20%), $shadow-glow-red;
 }
 
 /* 开发者测试区域 */
 .dev-section {
-  margin-top: 30px;
-  padding: 15px;
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px dashed #ffd700;
-  border-radius: 8px;
+  margin-top: $space-xl;
+  padding: $space-md;
+  background: rgba(#ffd700, 0.08);
+  border: 1px dashed rgba(#ffd700, 0.5);
+  border-radius: $radius-md;
 }
 
 .dev-buttons {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .dev-btn {
   flex: 1;
-  background: linear-gradient(135deg, #2ed573, #1e90ff);
+  background: $gradient-cyber;
   border: none;
-  border-radius: 6px;
-  padding: 8px;
+  border-radius: $radius-sm;
+  padding: 10px;
   font-size: 12px;
   color: #fff;
   font-weight: bold;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2), $shadow-glow-cyan;
+  transition: all $transition-fast $ease-smooth;
+
+  &:active {
+    transform: translateY(3px);
+    box-shadow: none;
+  }
 }
 </style>

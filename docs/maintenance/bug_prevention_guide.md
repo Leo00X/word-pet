@@ -121,6 +121,38 @@ rg "onShow" pages/index/index.vue
 
 ## 💡 典型错误案例精选
 
+### 规律 0: 混合开发陷阱 (Web & Native) ⭐
+
+**案例 #0-A - 悬浮窗遮挡页面内容** ⚠️
+- **现象**: 进入二级页面（如 Personality），首页的悬浮窗仍然显示并遮挡内容。
+- **原因**: 悬浮窗是全局系统级窗口（Android FloatWindow），不受 vue-router 页面切换控制。
+- **错误**: 认为跳转页面自然会盖住悬浮窗。
+- **解决方案**:
+  1. 使用 `onHide` 生命周期函数隐藏悬浮窗
+  2. 使用 `onShow` 恢复悬浮窗显示
+```javascript
+// index.vue
+onHide(() => {
+    if (floatWindow.isPetShown.value) {
+        wasPetShown.value = true;
+        floatWindow.hideFloatWindow();
+    }
+});
+onShow(() => {
+    if (wasPetShown.value) {
+        floatWindow.showFloatWindow(true);
+    }
+});
+```
+
+**案例 #0-B - UI 宽度溢出导致截断** ⚠️
+- **现象**: 页面内容变大，右侧被截断，出现横向滚动条。
+- **原因**: 使用固定 px 宽度（如 canvas `width: 280px`）且未限制父容器宽度。
+- **错误**: 在移动端使用硬编码 px 而非响应式单位 `rpx` 或百分比。
+- **解决方案**:
+  1. CSS 添加 `max-width: 100vw; overflow-x: hidden;`
+  2. Canvas 绘图尺寸需转换为适配值 (如 375px 屏幕用 250px)
+
 ### 规律 1: 初始化遗漏
 
 **案例 #1 - onShow 数据未加载** ⚠️

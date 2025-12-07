@@ -11,9 +11,14 @@
  * - 用户主动唤醒
  * - 到达唤醒时间
  * - 检测到用户活动
+ * 
+ * HCDS Phase 4 扩展:
+ * - 睡眠时记忆整理
+ * - 每日摘要生成
+ * - 深度睡眠时触发反思作业
  */
 import { ref, computed, watch } from 'vue';
-import { debugLog } from '@/utils/debugLog.js';
+import { debugLog, logSuccess } from '@/utils/debugLog.js';
 
 // 存储键
 const STORAGE_KEY = 'PET_SLEEP_STATE';
@@ -36,17 +41,28 @@ const SLEEP_CONFIG = {
 
 // ========== Composable ==========
 export function useSleepWake(options = {}) {
-    const { onSleep, onWake, onDream } = options;
+    const {
+        onSleep,
+        onWake,
+        onDream,
+        // HCDS Phase 4: 反思系统和记忆系统实例
+        reflectionInstance = null,
+        memoryInstance = null,
+        growthInstance = null
+    } = options;
 
     // 状态
     const isSleeping = ref(false);
     const sleepStartTime = ref(0);
     const lastInteractionTime = ref(Date.now());
     const dreamContent = ref(null);
+    const isDeepSleep = ref(false);  // 深度睡眠模式
+    const reflectionJobDone = ref(false);  // 反思作业是否完成
 
     // 计时器
     let wakeCheckInterval = null;
     let dreamInterval = null;
+    let deepSleepTimer = null;
 
     // ========== 核心方法 ==========
 
@@ -59,6 +75,7 @@ export function useSleepWake(options = {}) {
 
         isSleeping.value = true;
         sleepStartTime.value = Date.now();
+        reflectionJobDone.value = false;
 
         debugLog('[Sleep] 开始睡眠, 原因:', reason);
 
@@ -71,8 +88,74 @@ export function useSleepWake(options = {}) {
         // 启动做梦机制（可选）
         startDreamCycle();
 
+        // HCDS Phase 4: 30分钟后进入深度睡眠，触发反思作业
+        scheduleDeepSleep();
+
         if (onSleep) {
             onSleep({ reason, time: sleepStartTime.value });
+        }
+    };
+
+    /**
+     * HCDS Phase 4: 调度深度睡眠
+     * 睡眠30分钟后进入深度睡眠，触发记忆整理
+     */
+    const scheduleDeepSleep = () => {
+        deepSleepTimer = setTimeout(async () => {
+            if (isSleeping.value && !reflectionJobDone.value) {
+                isDeepSleep.value = true;
+                debugLog('[Sleep] 进入深度睡眠，开始记忆整理...');
+
+                await runReflectionJob();
+
+                reflectionJobDone.value = true;
+                logSuccess('睡眠反思作业完成');
+            }
+        }, 30 * 60 * 1000);  // 30分钟后
+    };
+
+    /**
+     * HCDS Phase 4: 执行反思作业
+     * 在深度睡眠时整理记忆、生成摘要
+     */
+    const runReflectionJob = async () => {
+        debugLog('[Sleep] 执行反思作业...');
+
+        try {
+            // 1. 生成每日摘要（如果有反思系统）
+            if (reflectionInstance && growthInstance) {
+                const todayData = {
+                    studyTime: growthInstance.todayStudyTime?.value || 0,
+                    idleTime: growthInstance.todayIdleTime?.value || 0,
+                    level: growthInstance.petLevel?.value || 1,
+                    mood: growthInstance.mood?.value || 50
+                };
+
+                reflectionInstance.generateDailySummary(todayData);
+                debugLog('[Sleep] 每日摘要已生成');
+            }
+
+            // 2. 记忆整理（如果有记忆系统）
+            if (memoryInstance) {
+                // 获取统计信息
+                const stats = memoryInstance.getStats();
+                debugLog('[Sleep] 记忆统计:', stats);
+
+                // 知识图谱清理（移除过旧的三元组）
+                if (memoryInstance.knowledgeGraph) {
+                    const oldTriplesCount = memoryInstance.knowledgeGraph.value.length;
+                    // 保留最近100条三元组
+                    if (oldTriplesCount > 100) {
+                        memoryInstance.knowledgeGraph.value =
+                            memoryInstance.knowledgeGraph.value.slice(-100);
+                        debugLog(`[Sleep] 知识图谱整理: ${oldTriplesCount} -> 100`);
+                    }
+                }
+            }
+
+            debugLog('[Sleep] 反思作业完成');
+        } catch (error) {
+            debugLog('[Sleep] 反思作业出错:', error);
         }
     };
 
@@ -93,18 +176,23 @@ export function useSleepWake(options = {}) {
             30  // 最多恢复30点
         );
 
+        // 重置状态
         isSleeping.value = false;
         sleepStartTime.value = 0;
         dreamContent.value = null;
+        isDeepSleep.value = false;
 
         // 停止定时器
         stopWakeCheck();
         stopDreamCycle();
+        stopDeepSleepTimer();
 
         // 清除保存的状态
         clearSleepState();
 
-        debugLog('[Sleep] 唤醒, 原因:', reason, '睡眠时长:', Math.round(sleepMinutes), '分钟');
+        debugLog('[Sleep] 唤醒, 原因:', reason,
+            '睡眠时长:', Math.round(sleepMinutes), '分钟',
+            '反思完成:', reflectionJobDone.value);
 
         const result = {
             reason,
@@ -237,6 +325,13 @@ export function useSleepWake(options = {}) {
         }
     };
 
+    const stopDeepSleepTimer = () => {
+        if (deepSleepTimer) {
+            clearTimeout(deepSleepTimer);
+            deepSleepTimer = null;
+        }
+    };
+
     // ========== 存储相关 ==========
 
     const saveSleepState = () => {
@@ -287,6 +382,8 @@ export function useSleepWake(options = {}) {
         isSleeping,
         sleepStartTime,
         dreamContent,
+        isDeepSleep,  // HCDS Phase 4
+        reflectionJobDone,  // HCDS Phase 4
         // 计算属性
         sleepDurationMinutes,
         isNightTime,
@@ -297,6 +394,7 @@ export function useSleepWake(options = {}) {
         checkShouldSleep,
         checkShouldWake,
         loadSleepState,
+        runReflectionJob,  // HCDS Phase 4: 手动触发反思
         // 配置
         SLEEP_CONFIG
     };

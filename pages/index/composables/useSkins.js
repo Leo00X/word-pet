@@ -38,6 +38,39 @@ const BUILTIN_SKINS = [
         }
     },
     {
+        id: 'default-ghost-parted',
+        name: '经典幽灵 (分层版)',
+        author: 'WordParasite',
+        version: '1.0.0',
+        description: '神秘的电子幽灵，支持部位交互',
+        petType: 'ghost',
+        type: 'parted',
+        unlockCondition: null,
+        preview: '/static/skins/default/preview.png',
+        parts: {
+            head: { type: 'sprite', src: 'skins/default-ghost/sprite.png', bgPos: '0% 0%', bgSize: '300% 200%', hitArea: { x: 0, y: 0, width: 60, height: 50 } },
+            body: { type: 'sprite', src: 'skins/default-ghost/sprite.png', bgPos: '50% 0%', bgSize: '300% 200%', hitArea: { x: 0, y: 40, width: 50, height: 50 } },
+            "left-arm": { type: 'sprite', src: 'skins/default-ghost/sprite.png', bgPos: '100% 0%', bgSize: '300% 200%', hitArea: { x: -30, y: 45, width: 25, height: 30 } },
+            "right-arm": { type: 'sprite', src: 'skins/default-ghost/sprite.png', bgPos: '0% 100%', bgSize: '300% 200%', hitArea: { x: 30, y: 45, width: 25, height: 30 } },
+            "left-leg": { type: 'sprite', src: 'skins/default-ghost/sprite.png', bgPos: '50% 100%', bgSize: '300% 200%', hitArea: { x: -15, y: 85, width: 25, height: 30 } },
+            "right-leg": { type: 'sprite', src: 'skins/default-ghost/sprite.png', bgPos: '100% 100%', bgSize: '300% 200%', hitArea: { x: 15, y: 85, width: 25, height: 30 } }
+        },
+        assets: {
+            animations: {
+                idle: 'css',
+                headShake: 'css',
+                bodyBounce: 'css',
+                wave: 'css'
+            }
+        },
+        styles: {
+            primaryColor: '#00d9ff',
+            secondaryColor: '#ff66cc',
+            glowEnabled: true,
+            bubbleStyle: 'default'
+        }
+    },
+    {
         id: 'cyberpunk_ghost',
         name: '赛博幽灵',
         author: 'WordParasite',
@@ -245,7 +278,9 @@ export function useSkins(options = {}) {
             action: 'change_skin',
             skinId: skin.id,
             petType: skin.petType,
+            type: skin.type || 'default', // default, lottie, parted
             animations: skin.assets?.animations || {},
+            parts: skin.parts || null,    // 发送部位数据
             styles: skin.styles || {}
         };
 

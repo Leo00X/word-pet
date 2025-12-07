@@ -26,11 +26,11 @@
             pointer-events: none;
         }
 
-        /* [BUG#104] 容器 - 减小尺寸 */
+        /* [BUG#104] 容器 - 支持分层和单一模式 */
         .container {
             position: relative;
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 140px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -43,6 +43,250 @@
 
         .container:active {
             transform: scale(0.95);
+        }
+
+        /* ========== 分层宠物模式 ========== */
+        .pet-parted {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: none;
+            /* 默认隐藏，切换时显示 */
+        }
+
+        .pet-parted.active {
+            display: block;
+        }
+
+        /* 部位通用样式 */
+        .pet-part {
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            pointer-events: auto;
+        }
+
+        .pet-part:hover {
+            filter: brightness(1.1);
+        }
+
+        .pet-part:active {
+            transform: scale(0.9);
+        }
+
+        .pet-part.touched {
+            filter: drop-shadow(0 0 15px rgba(255, 102, 204, 0.8));
+        }
+
+        /* 头部 */
+        .pet-part.head {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 50px;
+            z-index: 30;
+        }
+
+        /* 身体 */
+        .pet-part.body {
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            z-index: 20;
+        }
+
+        /* 左手 */
+        .pet-part.left-arm {
+            top: 45px;
+            left: 5px;
+            width: 25px;
+            height: 30px;
+            z-index: 25;
+        }
+
+        /* 右手 */
+        .pet-part.right-arm {
+            top: 45px;
+            right: 5px;
+            width: 25px;
+            height: 30px;
+            z-index: 25;
+        }
+
+        /* 左脚 */
+        .pet-part.left-leg {
+            top: 85px;
+            left: 25px;
+            width: 25px;
+            height: 30px;
+            z-index: 15;
+        }
+
+        /* 右脚 */
+        .pet-part.right-leg {
+            top: 85px;
+            right: 25px;
+            width: 25px;
+            height: 30px;
+            z-index: 15;
+        }
+
+        /* 部位图片 */
+        .pet-part img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* 部位 Emoji 模式 (无图片时) */
+        .pet-part .part-emoji {
+            font-size: 20px;
+            display: block;
+            text-align: center;
+            line-height: 1;
+        }
+
+        /* ========== 部位动画 ========== */
+        @keyframes headShake {
+
+            0%,
+            100% {
+                transform: translateX(-50%) rotate(0deg);
+            }
+
+            25% {
+                transform: translateX(-50%) rotate(-10deg);
+            }
+
+            75% {
+                transform: translateX(-50%) rotate(10deg);
+            }
+        }
+
+        @keyframes headNod {
+
+            0%,
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+
+            50% {
+                transform: translateX(-50%) translateY(5px);
+            }
+        }
+
+        @keyframes bodyBounce {
+
+            0%,
+            100% {
+                transform: translateX(-50%) scale(1);
+            }
+
+            50% {
+                transform: translateX(-50%) scale(1.15);
+            }
+        }
+
+        @keyframes bodyWiggle {
+
+            0%,
+            100% {
+                transform: translateX(-50%) rotate(0deg);
+            }
+
+            25% {
+                transform: translateX(-50%) rotate(-5deg);
+            }
+
+            75% {
+                transform: translateX(-50%) rotate(5deg);
+            }
+        }
+
+        @keyframes armWave {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(-30deg);
+            }
+        }
+
+        @keyframes armHighfive {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(-45deg) scale(1.2);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        @keyframes legKick {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(20deg);
+            }
+        }
+
+        @keyframes legStomp {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(5px);
+            }
+        }
+
+        /* 动画激活状态 */
+        .pet-part.head.anim-headShake {
+            animation: headShake 0.5s ease;
+        }
+
+        .pet-part.head.anim-nod {
+            animation: headNod 0.5s ease;
+        }
+
+        .pet-part.body.anim-bodyBounce {
+            animation: bodyBounce 0.5s ease;
+        }
+
+        .pet-part.body.anim-wiggle {
+            animation: bodyWiggle 0.5s ease;
+        }
+
+        .pet-part.left-arm.anim-wave {
+            animation: armWave 0.8s ease;
+        }
+
+        .pet-part.right-arm.anim-highfive {
+            animation: armHighfive 0.5s ease;
+        }
+
+        .pet-part.left-leg.anim-kick {
+            animation: legKick 0.5s ease;
+        }
+
+        .pet-part.right-leg.anim-stomp {
+            animation: legStomp 0.3s ease 2;
         }
 
         /* [BUG#104] 对话气泡样式  -  绝对定位，悬浮在宠物上方 */
@@ -343,8 +587,30 @@
             <!-- Lottie 动画容器 -->
             <div id="lottie-container"></div>
 
-            <!-- Emoji 模式 -->
+            <!-- Emoji 模式 (单一模式) -->
             <span class="pet-emoji anim-idle" id="petEmoji">👻</span>
+
+            <!-- 分层宠物模式 (6部位) -->
+            <div class="pet-parted" id="petParted">
+                <div class="pet-part head" data-part="head">
+                    <span class="part-emoji">👻</span>
+                </div>
+                <div class="pet-part body" data-part="body">
+                    <span class="part-emoji">🫥</span>
+                </div>
+                <div class="pet-part left-arm" data-part="left-arm">
+                    <span class="part-emoji">🤚</span>
+                </div>
+                <div class="pet-part right-arm" data-part="right-arm">
+                    <span class="part-emoji">✋</span>
+                </div>
+                <div class="pet-part left-leg" data-part="left-leg">
+                    <span class="part-emoji">🦵</span>
+                </div>
+                <div class="pet-part right-leg" data-part="right-leg">
+                    <span class="part-emoji">🦶</span>
+                </div>
+            </div>
 
             <!-- CSS Ghost 模式（备用） -->
             <!-- <div class="ghost-css anim-idle" id="ghostCss">
@@ -365,12 +631,15 @@
         </div>
     </div>
 
+
     <script>
         // ========== 元素引用 ==========
         const petArea = document.getElementById('petArea');
         const bubble = document.getElementById('bubble');
         const petEmoji = document.getElementById('petEmoji');
         const lottieContainer = document.getElementById('lottie-container');
+        const petParted = document.getElementById('petParted');
+        const petParts = document.querySelectorAll('.pet-part');
 
         // ========== 状态管理 ==========
         let bubbleTimer = null;
@@ -378,7 +647,8 @@
         let currentSkin = null;
         let lottieAnimations = {}; // 缓存的 Lottie 动画实例
         let currentLottie = null;
-        let renderMode = 'emoji'; // 'emoji' | 'lottie' | 'css'
+        let renderMode = 'emoji'; // 'emoji' | 'lottie' | 'css' | 'parted'
+        let partedMode = false;   // 是否启用分层模式
 
         // ========== 消息处理 ==========
 
@@ -424,6 +694,10 @@
                         handleSkinChange(data);
                         break;
 
+                    case 97: // [新] 切换到分层模式
+                        handlePartedModeSwitch(data);
+                        break;
+
                     case 200: // [新] 多模态 AI 响应
                         handleMultimodalResponse(data);
                         break;
@@ -438,9 +712,15 @@
 
         /**
          * 处理动画状态切换
-         * @param {Object} data - { action, state, duration, shake, emoji }
+         * @param {Object} data - { action, state, duration, shake, emoji, part, animation }
          */
         function handleStateChange(data) {
+            // 部位动画 (分层模式)
+            if (data.action === 'part_animation' && data.part) {
+                playPartAnimation(data.part, data.animation, data.duration || 800);
+                return;
+            }
+
             if (data.action !== 'change_state') return;
 
             const { state, duration, shake, emoji } = data;
@@ -460,6 +740,134 @@
         }
 
         /**
+         * 切换到分层模式
+         * @param {Object} data - { action, enabled, parts }
+         */
+        function handlePartedModeSwitch(data) {
+            if (data.action !== 'parted_mode') return;
+
+            partedMode = data.enabled !== false;
+            console.log('[Pet] 分层模式:', partedMode ? '开启' : '关闭');
+
+            if (partedMode) {
+                switchToPartedMode(data.parts);
+            } else {
+                switchToEmojiMode();
+            }
+        }
+
+        /**
+         * 播放部位动画
+         * @param {string} partName - 部位名称
+         * @param {string} animation - 动画名称
+         * @param {number} duration - 持续时间
+         */
+        function playPartAnimation(partName, animation, duration = 800) {
+            const part = document.querySelector(`.pet-part.${partName}`);
+            if (!part) {
+                console.log('[Pet] 找不到部位:', partName);
+                return;
+            }
+
+            console.log('[Pet] 播放部位动画:', partName, animation);
+
+            // 添加触摸反馈
+            part.classList.add('touched');
+
+            // 添加动画类
+            if (animation) {
+                part.classList.add('anim-' + animation);
+            }
+
+            // 移除效果
+            setTimeout(() => {
+                part.classList.remove('touched');
+                if (animation) {
+                    part.classList.remove('anim-' + animation);
+                }
+            }, duration);
+        }
+
+        /**
+         * 切换到分层模式
+         * @param {Object} parts - 部位配置 { head: {emoji, img}, ... }
+         */
+        function switchToPartedMode(parts) {
+            if (renderMode === 'parted' && partedMode) {
+                // 已经是分层模式，仅更新部位
+                updateParts(parts);
+                return;
+            }
+
+            renderMode = 'parted';
+            partedMode = true;
+
+            // 隐藏其他模式
+            petEmoji.style.display = 'none';
+            lottieContainer.style.display = 'none';
+
+            // 显示分层容器
+            petParted.classList.add('active');
+
+            // 应用部位配置
+            updateParts(parts);
+
+            console.log('[Pet] 已切换到分层模式');
+        }
+
+        /**
+         * 更新部位显示
+         */
+        function updateParts(parts) {
+            if (!parts) return;
+
+            Object.keys(parts).forEach(partName => {
+                const partEl = document.querySelector(`.pet-part.${partName}`);
+                if (!partEl) return;
+
+                const config = parts[partName];
+
+                // 重置样式
+                partEl.style.backgroundImage = '';
+                partEl.style.backgroundPosition = '';
+                partEl.style.backgroundSize = '';
+                partEl.style.backgroundRepeat = '';
+                partEl.style.display = ''; // Reset display for emoji mode
+                partEl.style.alignItems = '';
+                partEl.style.justifyContent = '';
+                partEl.style.fontSize = '';
+                partEl.textContent = ''; // 清空内容
+
+                // 1. Sprite 模式
+                if (config.type === 'sprite' && config.src) {
+                    partEl.style.backgroundImage = `url(${config.src})`;
+                    partEl.style.backgroundPosition = config.bgPos || '0 0';
+                    partEl.style.backgroundSize = config.bgSize || 'cover';
+                    partEl.style.backgroundRepeat = 'no-repeat';
+                }
+                // 2. 独立图片模式
+                else if (config.img) {
+                    const img = document.createElement('img');
+                    img.src = config.img;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'contain';
+                    // 禁止图片响应点击，让父级div响应
+                    img.style.pointerEvents = 'none';
+                    partEl.appendChild(img);
+                }
+                // 3. Emoji 模式
+                else if (config.emoji) {
+                    partEl.textContent = config.emoji;
+                    partEl.style.display = 'flex';
+                    partEl.style.alignItems = 'center';
+                    partEl.style.justifyContent = 'center';
+                    partEl.style.fontSize = '32px';
+                }
+            });
+        }
+
+        /**
          * 处理皮肤切换
          * @param {Object} data - { action, skinId, petType, animations, styles }
          */
@@ -473,7 +881,10 @@
             applyStyles(data.styles);
 
             // 切换渲染模式
-            if (data.animations && Object.keys(data.animations).some(k =>
+            if (data.type === 'parted' || (data.parts && Object.keys(data.parts).length > 0)) {
+                // [新] 分层模式 (Sprite / 独立图片)
+                switchToPartedMode(data.parts);
+            } else if (data.animations && Object.keys(data.animations).some(k =>
                 data.animations[k].endsWith('.json'))
             ) {
                 // Lottie 模式
@@ -934,6 +1345,68 @@
         // [BUG#1 修复] 移除自动显示的初始化消息
         // 初始消息统一由 uni-app 端控制（handleTogglePet），避免与待发送问候冲突
         // 如果有待发送问候则显示问候，否则显示默认初始消息
+
+        // ========== 部位点击事件绑定 ==========
+        petParts.forEach(part => {
+            part.addEventListener('click', function (e) {
+                // 阻止事件冒泡，避免触发整体点击
+                e.stopPropagation();
+
+                const partName = this.dataset.part;
+                if (!partName) return;
+
+                console.log('[Pet] 部位点击:', partName);
+
+                // 本地反馈：触摸效果
+                this.classList.add('touched');
+                setTimeout(() => {
+                    this.classList.remove('touched');
+                }, 500);
+
+                // 发送部位点击事件给 uni-app
+                if (typeof uniapp !== 'undefined') {
+                    uniapp.sendDataToUni(100, JSON.stringify({
+                        gesture: 'PART_TAP',
+                        event: 'part_clicked',
+                        part: partName,
+                        timestamp: Date.now()
+                    }));
+                }
+            });
+
+            // 长按部位
+            let partLongPressTimer = null;
+            part.addEventListener('touchstart', function (e) {
+                const partName = this.dataset.part;
+                partLongPressTimer = setTimeout(() => {
+                    console.log('[Pet] 部位长按:', partName);
+                    if (typeof uniapp !== 'undefined') {
+                        uniapp.sendDataToUni(100, JSON.stringify({
+                            gesture: 'PART_LONG_PRESS',
+                            event: 'part_long_pressed',
+                            part: partName,
+                            timestamp: Date.now()
+                        }));
+                    }
+                }, 800);
+            }, { passive: true });
+
+            part.addEventListener('touchend', function (e) {
+                if (partLongPressTimer) {
+                    clearTimeout(partLongPressTimer);
+                    partLongPressTimer = null;
+                }
+            });
+
+            part.addEventListener('touchcancel', function (e) {
+                if (partLongPressTimer) {
+                    clearTimeout(partLongPressTimer);
+                    partLongPressTimer = null;
+                }
+            });
+        });
+
+        console.log('[Pet] 部位点击事件已绑定，共', petParts.length, '个部位');
 
     </script>
 </body>

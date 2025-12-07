@@ -152,6 +152,7 @@ utils/
 | `useAnimations.js` | 动画管理 | 280 | 状态动画、悬浮窗同步 |
 | `usePermissions.js` | 权限管理 | 80 | 悬浮窗/使用统计权限检查 |
 | `useTerminal.js` | 伪终端 | 50 | 日志显示 |
+| `useVectorMemory.js` | 向量记忆 | 360 | 语义搜索 (Embedding)、知识提取 |
 
 #### Composable 使用模式
 

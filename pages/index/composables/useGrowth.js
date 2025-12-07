@@ -28,6 +28,7 @@ export function useGrowth() {
     const totalIdleTime = ref(0);     // 总摸鱼时长
     const todayStudyTime = ref(0);    // 今日学习时长
     const todayIdleTime = ref(0);     // 今日摸鱼时长
+    const todayMoodStart = ref(80);   // 今日开始时的心情值（用于日记显示）
     const lastUpdateTime = ref(Date.now());
 
     // 计算属性
@@ -59,7 +60,11 @@ export function useGrowth() {
             totalIdleTime.value = uni.getStorageSync('total_idle_time') || 0;
             todayStudyTime.value = uni.getStorageSync('today_study_time') || 0;
             todayIdleTime.value = uni.getStorageSync('today_idle_time') || 0;
+            todayMoodStart.value = uni.getStorageSync('today_mood_start') || mood.value;
             lastUpdateTime.value = uni.getStorageSync('last_update_time') || Date.now();
+
+            // 检查是否跨天，如果跨天则重置每日统计
+            checkDayChange();
 
             // 检查是否需要应用时间衰减
             checkTimeDecay();
@@ -85,6 +90,7 @@ export function useGrowth() {
             uni.setStorageSync('total_idle_time', totalIdleTime.value);
             uni.setStorageSync('today_study_time', todayStudyTime.value);
             uni.setStorageSync('today_idle_time', todayIdleTime.value);
+            uni.setStorageSync('today_mood_start', todayMoodStart.value);
             uni.setStorageSync('last_update_time', lastUpdateTime.value);
 
             // 兼容老版本（保持 pet_mood_cache）
@@ -257,7 +263,23 @@ export function useGrowth() {
     const resetDailyStats = () => {
         todayStudyTime.value = 0;
         todayIdleTime.value = 0;
+        todayMoodStart.value = mood.value; // 记录新一天开始时的心情
         saveData();
+    };
+
+    /**
+     * 检查是否跨天，如果跨天则自动重置每日统计
+     */
+    const checkDayChange = () => {
+        const lastDate = uni.getStorageSync('last_day_check');
+        const today = new Date().toDateString();
+
+        if (lastDate !== today) {
+            // 跨天了，重置每日统计
+            console.log('[Growth] 检测到跨天，重置每日统计');
+            resetDailyStats();
+            uni.setStorageSync('last_day_check', today);
+        }
     };
 
     // 监听数值变化自动保存（防抖）
@@ -285,6 +307,7 @@ export function useGrowth() {
         totalIdleTime,
         todayStudyTime,
         todayIdleTime,
+        todayMoodStart,  // 今日开始时的心情
 
         // 计算属性
         requiredXP,
@@ -305,6 +328,7 @@ export function useGrowth() {
         feed,
         changePetType,
         resetDailyStats,
-        checkTimeDecay
+        checkTimeDecay,
+        checkDayChange
     };
 }

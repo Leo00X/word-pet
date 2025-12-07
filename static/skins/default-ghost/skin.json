@@ -1,0 +1,135 @@
+{
+    "id": "default-ghost-parted",
+    "name": "经典幽灵 (分层版)",
+    "version": "1.0.0",
+    "author": "WordParasite",
+    "description": "神秘的电子幽灵，支持 6 个可交互部位",
+    "type": "parted",
+    "petType": "ghost",
+    "parts": {
+        "head": {
+            "type": "sprite",
+            "src": "sprite.png",
+            "bgPos": "0% 0%",
+            "bgSize": "300% 200%",
+            "hitArea": {
+                "x": 0,
+                "y": 0,
+                "width": 60,
+                "height": 50
+            }
+        },
+        "body": {
+            "type": "sprite",
+            "src": "sprite.png",
+            "bgPos": "50% 0%",
+            "bgSize": "300% 200%",
+            "hitArea": {
+                "x": 0,
+                "y": 40,
+                "width": 50,
+                "height": 50
+            }
+        },
+        "left-arm": {
+            "type": "sprite",
+            "src": "sprite.png",
+            "bgPos": "100% 0%",
+            "bgSize": "300% 200%",
+            "hitArea": {
+                "x": -30,
+                "y": 45,
+                "width": 25,
+                "height": 30
+            }
+        },
+        "right-arm": {
+            "type": "sprite",
+            "src": "sprite.png",
+            "bgPos": "0% 100%",
+            "bgSize": "300% 200%",
+            "hitArea": {
+                "x": 30,
+                "y": 45,
+                "width": 25,
+                "height": 30
+            }
+        },
+        "left-leg": {
+            "type": "sprite",
+            "src": "sprite.png",
+            "bgPos": "50% 100%",
+            "bgSize": "300% 200%",
+            "hitArea": {
+                "x": -15,
+                "y": 85,
+                "width": 25,
+                "height": 30
+            }
+        },
+        "right-leg": {
+            "type": "sprite",
+            "src": "sprite.png",
+            "bgPos": "100% 100%",
+            "bgSize": "300% 200%",
+            "hitArea": {
+                "x": 15,
+                "y": 85,
+                "width": 25,
+                "height": 30
+            }
+        }
+    },
+    "animations": {
+        "idle": {
+            "type": "css",
+            "keyframes": "float",
+            "loop": true
+        },
+        "headShake": {
+            "type": "css",
+            "keyframes": "headShake",
+            "duration": 500
+        },
+        "bodyBounce": {
+            "type": "css",
+            "keyframes": "bodyBounce",
+            "duration": 500
+        },
+        "wave": {
+            "type": "css",
+            "keyframes": "armWave",
+            "duration": 800
+        },
+        "highfive": {
+            "type": "css",
+            "keyframes": "armHighfive",
+            "duration": 500
+        },
+        "kick": {
+            "type": "css",
+            "keyframes": "legKick",
+            "duration": 500
+        },
+        "stomp": {
+            "type": "css",
+            "keyframes": "legStomp",
+            "duration": 300
+        }
+    },
+    "styles": {
+        "primaryColor": "#667eea",
+        "secondaryColor": "#764ba2",
+        "glowEnabled": true,
+        "bubble": {
+            "background": "rgba(0, 0, 0, 0.85)",
+            "textColor": "#00e676",
+            "borderColor": "#333"
+        }
+    },
+    "unlockCondition": {
+        "type": "default",
+        "value": null
+    },
+    "price": 0
+}

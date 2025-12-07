@@ -1,10 +1,17 @@
 /**
- * AI 记忆系统 Composable（轻量版）
+ * AI 记忆系统 Composable（增强版 v2.0）
  * 职责: 存储关键对话、提取关键信息、构建上下文记忆
+ * 
+ * 新增功能:
+ * - 记忆分类（事实/事件/情感/对话）
+ * - 时间衰减权重（旧记忆逐渐淡化）
+ * - 改进的检索算法（混合匹配）
+ * - 简化知识图谱（实体-关系三元组）
  * 
  * 架构:
  * - conversations: 最近100条对话记录
  * - facts: 提取的关键事实（用户名、偏好等）
+ * - knowledgeGraph: 简易三元组存储
  * - tags: 对话标签（用于快速检索）
  */
 import { ref, computed } from 'vue';
@@ -12,8 +19,23 @@ import { debugLog, logError, logSuccess } from '@/utils/debugLog.js';
 
 // ========== 常量定义 ==========
 const MEMORY_STORAGE_KEY = 'ai_memory';
+const KNOWLEDGE_GRAPH_KEY = 'knowledge_graph';
 const MAX_CONVERSATIONS = 100;  // 最大存储对话数
 const MAX_CONTEXT_MESSAGES = 10; // 发送给AI的最大历史消息数
+
+// 记忆分类
+const MEMORY_TYPES = {
+    FACT: 'fact',           // 事实（用户名、偏好）
+    EVENT: 'event',         // 事件（学习30分钟、解锁成就）
+    EMOTION: 'emotion',     // 情感（高兴、难过）
+    CONVERSATION: 'conversation'  // 普通对话
+};
+
+// 时间衰减配置
+const TIME_DECAY = {
+    HALF_LIFE_DAYS: 7,      // 半衰期：7天后重要性减半
+    MIN_WEIGHT: 0.1         // 最小权重（再旧也不会完全归零）
+};
 
 // 关键词提取规则
 const KEYWORD_PATTERNS = {
@@ -51,7 +73,7 @@ const IMPORTANCE_RULES = {
 };
 
 /**
- * AI记忆系统
+ * AI记忆系统（增强版）
  */
 export function useMemory() {
     // ========== 响应式状态 ==========
@@ -68,6 +90,9 @@ export function useMemory() {
         firstMeetDate: null,
         totalChats: 0
     });
+
+    // 简易知识图谱（三元组：subject-predicate-object）
+    const knowledgeGraph = ref([]);
 
     // 统计信息
     const stats = ref({
@@ -417,18 +442,162 @@ export function useMemory() {
             highImportance: conversations.value.filter(m => m.importance >= 4).length,
             factsKnown: Object.values(facts.value).filter(v => v !== null).length,
             oldestMemory: conversations.value[0]?.timestamp,
-            newestMemory: conversations.value[conversations.value.length - 1]?.timestamp
+            newestMemory: conversations.value[conversations.value.length - 1]?.timestamp,
+            knowledgeTriples: knowledgeGraph.value.length
         };
+    }
+
+    // ========== 增强功能 (v2.0) ==========
+
+    /**
+     * 计算时间衰减权重
+     * @param {number} timestamp - 记忆时间戳
+     * @returns {number} 衰减权重 (0.1-1.0)
+     */
+    function calculateTimeDecayWeight(timestamp) {
+        const ageInDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+        const halfLife = TIME_DECAY.HALF_LIFE_DAYS;
+
+        // 指数衰减公式: weight = 0.5^(age / halfLife)
+        const weight = Math.pow(0.5, ageInDays / halfLife);
+
+        // 限制最小权重
+        return Math.max(TIME_DECAY.MIN_WEIGHT, weight);
+    }
+
+    /**
+     * 自动分类记忆类型
+     * @param {string} content - 记忆内容
+     * @param {Array} tags - 标签
+     * @param {number} importance - 重要性
+     * @returns {string} 记忆类型
+     */
+    function classifyMemoryType(content, tags, importance) {
+        // 事实：个人信息
+        if (tags.includes('用户信息') || tags.includes('宠物命名')) {
+            return MEMORY_TYPES.FACT;
+        }
+
+        // 情感：情绪相关
+        if (tags.includes('情绪')) {
+            return MEMORY_TYPES.EMOTION;
+        }
+
+        // 事件：成就、学习
+        if (tags.includes('成就') || tags.includes('学习')) {
+            return MEMORY_TYPES.EVENT;
+        }
+
+        // 默认：对话
+        return MEMORY_TYPES.CONVERSATION;
+    }
+
+    /**
+     * 添加知识三元组
+     * @param {string} subject - 主语（如：用户、宠物）
+     * @param {string} predicate - 谓语（如：使用、喜欢、解锁）
+     * @param {string} object - 宾语（如：墨墨背单词、学习）
+     */
+    function addTriple(subject, predicate, object) {
+        const triple = {
+            id: `triple_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+            subject,
+            predicate,
+            object,
+            timestamp: Date.now()
+        };
+
+        // 检查是否已存在相同三元组
+        const exists = knowledgeGraph.value.some(t =>
+            t.subject === subject &&
+            t.predicate === predicate &&
+            t.object === object
+        );
+
+        if (!exists) {
+            knowledgeGraph.value.push(triple);
+            saveKnowledgeGraph();
+            console.log(`[知识图谱] 添加三元组: ${subject} → ${predicate} → ${object}`);
+        }
+    }
+
+    /**
+     * 查询知识图谱
+     * @param {Object} query - 查询条件 { subject?, predicate?, object? }
+     * @returns {Array} 匹配的三元组
+     */
+    function queryKnowledgeGraph(query) {
+        return knowledgeGraph.value.filter(triple => {
+            if (query.subject && triple.subject !== query.subject) return false;
+            if (query.predicate && triple.predicate !== query.predicate) return false;
+            if (query.object && triple.object !== query.object) return false;
+            return true;
+        });
+    }
+
+    /**
+     * 保存知识图谱
+     */
+    function saveKnowledgeGraph() {
+        try {
+            uni.setStorageSync(KNOWLEDGE_GRAPH_KEY, JSON.stringify(knowledgeGraph.value));
+        } catch (err) {
+            logError('useMemory', '保存知识图谱失败', err);
+        }
+    }
+
+    /**
+     * 加载知识图谱
+     */
+    function loadKnowledgeGraph() {
+        try {
+            const saved = uni.getStorageSync(KNOWLEDGE_GRAPH_KEY);
+            if (saved) {
+                knowledgeGraph.value = JSON.parse(saved);
+                console.log(`[知识图谱] 已加载 ${knowledgeGraph.value.length} 条三元组`);
+            }
+        } catch (err) {
+            logError('useMemory', '加载知识图谱失败', err);
+        }
+    }
+
+    /**
+     * 增强的记忆检索（考虑时间衰减）
+     * @param {string} query - 查询词
+     * @param {number} limit - 返回数量
+     * @returns {Array} 按相关性排序的记忆
+     */
+    function smartSearch(query, limit = 5) {
+        const keywords = query.toLowerCase().split(/\s+/);
+
+        const results = conversations.value
+            .filter(mem => {
+                const content = mem.content.toLowerCase();
+                return keywords.some(kw => content.includes(kw));
+            })
+            .map(mem => {
+                // 计算综合得分：重要性 × 时间衰减权重
+                const timeWeight = calculateTimeDecayWeight(mem.timestamp);
+                const score = mem.importance * timeWeight;
+
+                return { ...mem, score, timeWeight };
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit);
+
+        return results;
     }
 
     // ========== 初始化 ==========
     loadData();
+    loadKnowledgeGraph();
 
     // ========== 返回公开API ==========
     return {
         // 状态
         conversations,
         facts,
+        knowledgeGraph,  // 新增
         stats,
         userSummary,
         recentContext,
@@ -438,6 +607,12 @@ export function useMemory() {
         searchMemories,
         buildMemoryPrompt,
         getHistoryForAI,
+
+        // 增强功能 (v2.0)
+        smartSearch,  // 新增：智能检索
+        addTriple,  // 新增：添加知识三元组
+        queryKnowledgeGraph,  // 新增：查询知识图谱
+        calculateTimeDecayWeight,  // 新增：时间衰减
 
         // 数据管理
         loadData,

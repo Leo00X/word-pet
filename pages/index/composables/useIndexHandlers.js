@@ -133,6 +133,27 @@ export function useIndexHandlers(deps) {
         petInteraction.randomChat.clearHistory();
     };
 
+    /**
+     * 切换分层宠物模式
+     */
+    const handleTogglePartedMode = (enabled) => {
+        if (!petInteraction) return;
+
+        if (enabled) {
+            petInteraction.enablePartedMode();
+        } else {
+            petInteraction.disablePartedMode();
+        }
+
+        // 持久化设置
+        uni.setStorageSync('pet_parted_mode', enabled);
+
+        uni.showToast({
+            title: enabled ? '🧩 分层模式已开启' : '分层模式已关闭',
+            icon: 'none'
+        });
+    };
+
     // ========== 聊天消息 ==========
 
     /**
@@ -377,6 +398,7 @@ export function useIndexHandlers(deps) {
         handleIntervalChange,
         handleToggleRandomChat,
         handleClearRandomHistory,
+        handleTogglePartedMode,
 
         // 聊天消息
         handleSendMessage,

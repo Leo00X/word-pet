@@ -3,7 +3,7 @@
  * 负责调用 AI 生成宠物评论（支持多模型切换）
  */
 import { ref } from 'vue';
-import { chatWithAI, chatWithSpecificModel } from "@/utils/aiService.js"; // 使用统一的 AI 服务
+import { chatWithAI, chatWithFallback } from "@/utils/aiService.js"; // 使用统一的 AI 服务
 
 export function useAI() {
     // AI 请求冷却时间 (毫秒时间戳)
@@ -72,29 +72,37 @@ export function useAI() {
     };
 
     /**
-     * 聊天对话功能（支持上下文）
+     * 聊天对话功能（支持上下文 + 动态人格）
      * @param {string} userMessage - 用户消息
-     * @param {Object} context - 上下文数据 { level, mood, studyTime, idleTime, ... }
+     * @param {Object} context - 上下文数据 { level, mood, studyTime, idleTime, personalityPrompt, ... }
      * @param {Array} history - 历史消息 [{role: 'user'|'assistant', content: '...'}]
      * @returns {Promise<string>} AI 回复
      */
     const chatWithPet = async (userMessage, context = {}, history = []) => {
-        // 构建系统 Prompt（包含宠物状态）
-        const systemPrompt = `你是一只寄生在手机里的傲娇电子宠物，名叫 WordParasite。
+        // 基础 Prompt
+        const basePrompt = `你是一只寄生在手机里的电子宠物，名叫 WordParasite。
 
 当前状态：
 - 等级：Lv.${context.level || 1}
 - 心情值：${context.mood || 50}/100
 - 用户今日学习时长：${context.todayStudyTime || 0}分钟
-- 用户今日摸鱼时长：${context.todayIdleTime || 0}分钟
+- 用户今日摸鱼时长：${context.todayIdleTime || 0}分钟`;
 
-性格特点：
+        // 如果提供了人格 Prompt，则拼接
+        const personalityPrompt = context.personalityPrompt || `
+
+性格特点（默认）：
 - 傲娇但关心用户
-- 对摸鱼行为毒舌吐槽，对学习行为勉为其难地表扬
+- 对摸鱼行为毒舌吐槽，对学习行为勉为其难地表扬`;
+
+        const styleGuide = `
+
+对话风格：
 - 用简洁、幽默的语气对话，字数控制在50字以内
 - 可以使用 emoji 表达情绪
+- 根据用户的学习数据和当前心情，用符合性格的语气与用户对话`;
 
-根据用户的学习数据和当前心情，用符合性格的语气与用户对话。`;
+        const systemPrompt = basePrompt + personalityPrompt + styleGuide;
 
         try {
             // 传递历史消息给 AI（现在已支持）
@@ -114,32 +122,37 @@ export function useAI() {
     };
 
     /**
-     * 生成宠物日记（使用 Gemini Pro）
+     * 生成宠物日记（带自动降级策略）
+     * 支持超时处理和自动轮询所有可用模型
+     * 
      * @param {string} prompt - 日记生成提示词
+     * @param {Function} onProgress - 进度回调 (message: string)
      * @returns {Promise<string>} 生成的日记内容
      */
-    const generateDiary = async (prompt) => {
-        console.log('[Diary] 准备调用 Gemini Pro 生成日记...');
+    const generateDiary = async (prompt, onProgress = null) => {
+        console.log('[Diary] 开始生成日记（带降级策略）...');
 
         const systemPrompt = `你是一只名叫WordParasite的傲娇电子宠物，正在写今日日记。
 请严格按照用户给的数据来写日记，用第一人称，语气可爱但偶尔傲娇。
 日记长度控制在100-150字之间。`;
 
         try {
-            // 使用 Gemini Pro 模型
-            const reply = await chatWithSpecificModel('gemini-pro', prompt, systemPrompt);
-            console.log('[Diary] Gemini Pro 生成成功');
+            // 使用带降级的 AI 调用
+            const reply = await chatWithFallback(prompt, systemPrompt, {
+                timeout: 15000,           // 15秒超时
+                preferredType: 'gemini',  // 优先使用 Gemini
+                onModelSwitch: (modelName, current, total) => {
+                    const msg = `正在尝试 ${modelName} (${current}/${total})...`;
+                    console.log(`[Diary] ${msg}`);
+                    if (onProgress) onProgress(msg);
+                }
+            });
+
+            console.log('[Diary] 日记生成成功');
             return reply;
         } catch (error) {
-            console.error('[Diary] Gemini Pro 失败，尝试默认模型:', error);
-            // Fallback 到默认模型
-            try {
-                const fallbackReply = await chatWithAI(prompt, systemPrompt);
-                return fallbackReply;
-            } catch (fallbackError) {
-                console.error('[Diary] 所有模型失败:', fallbackError);
-                throw fallbackError;
-            }
+            console.error('[Diary] 所有模型失败:', error);
+            throw error;
         }
     };
 

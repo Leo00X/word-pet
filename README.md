@@ -1,6 +1,6 @@
 👾 WordParasite (单词寄生兽) | Desktop AI Companion
 
->> **📅 最新更新**: 2025-12-07 - 🎉 代码质量审查 + Bug修复 + index.vue重构完成（7个Bug修复，代码减少50%）  
+> **📅 最新更新**: 2025-12-07 - 🎉 认知核心可视化控制台 (HCDS Debugger UI) 上线  
 > 📖 功能指南: [悬浮窗用户指南](./docs/guides/FLOAT_WINDOW_GUIDE.md) | [技术文档](./docs/guides/FLOAT_WINDOW_TECHNICAL.md) | [更新日志](./docs/maintenance/UPDATES.md) | [AI使用指南](./docs/guides/AI_GUIDE.md)  
 > 🛡️ **开发者必读**: [BUG防范指南](./docs/maintenance/bug_prevention_guide.md) - 18个易错案例 + 三轮审查方法
 
@@ -188,11 +188,40 @@ word-pet/
 [x] **皮肤切换与同步** (悬浮窗实时同步 + 本地持久化) ✅ 2025-12-06
 [x] **开发者测试功能** (快速升级 + 增加金币) ✅ 2025-12-06
 [x] **联网/本地宠物切换**（github、本地）（在线皮肤下载）
-[ ] 数字灵魂架构 (HCDS - 混合记忆引擎)
-    [ ] 混合记忆引擎：基于 SQLite 的本地向量存储 (Vector) + 简易知识图谱 (Graph)
-    [ ] 认知循环 (PMRA Loop)：实现感知-记忆-反思-行动的自主闭环
-    [ ] 睡眠与反思机制：在充电/闲置时触发记忆整理与摘要 (Reflection Job)
-    [ ] 动态人格演化：基于大五人格 (Big Five) 的性格向量，随交互历史动态改变 Prompt
+[x] **AI 自动降级系统** (超时自动切换模型 + 模型轮询) ✅ 2025-12-07
+[x] **数字灵魂架构 (HCDS)** - 混合记忆引擎## 🧠 2025-12-07 (最新) - 认知核心可视化控制台
+
+### ✨ 新增功能
+
+**HCDS 开发者控制台**:
+- **Vector Engine**: 查看向量统计、配置 API Key、语义搜索测试
+- **Memory Bank**: 浏览 AI 提取的事实 (Facts) 和知识图谱
+- **Mind State**: 监控睡眠状态、强制唤醒/入睡、查看反思报告
+
+**入口**:
+- 系统设置 (ConfigPanel) -> 🧠 认知核心
+
+**相关文件**:
+- `pages/debug/cognitive.vue` (新建)
+- `pages/index/components/ConfigPanel.vue` (入口)
+
+### 🐛 Bug 修复
+
+- **#110**: 修复配置面板中"认知核心"和"宠物人格"点击无反应的问题 (ConfigPanel methods 缺失)
+
+---
+
+## 🎮 2025-12-07 (深夜) - 悬浮窗宠物部位系统 (useVectorMemory) ✅ 2025-12-07
+ - [x] 智能记忆 (useVectorMemory.js)
+  - [x] 语义搜索
+  - [x] 知识图谱
+- [x] 认知核心可视化控制台 (Dev)
+
+#### Medium Priority (P1) ✅ 2025-12-07
+    [x] 混合记忆引擎：基于 SQLite 的本地向量存储 (Vector) + 简易知识图谱 (Graph) ✅
+    [x] 认知循环 (PMRA Loop)：实现感知-记忆-反思-行动的自主闭环 ✅
+    [x] 睡眠与反思机制：在充电/闲置时触发记忆整理与摘要 (Reflection Job) ✅
+    [x] 动态人格演化：基于大五人格 (Big Five) 的性格向量，随交互历史动态改变 Prompt ✅
 [ ] 悬浮窗聊天输入 (双层渲染架构)
 [ ] 悬浮窗情绪动画 (根据应用包名改变表情)
 [ ] 屏幕强制干扰功能（愤怒模式）
