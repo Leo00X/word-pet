@@ -1,3 +1,31 @@
+# WordParasite 更新日志
+
+---
+
+## 🎉 2025-12-08 - 悬浮窗位置修复 + 气泡显示优化
+
+### 🐛 Bug 修复
+
+**#112 悬浮窗点击后位置跳到右上角**:
+- **根因**: `updateWindow()` 调用时重新应用 `setGravity(2)` 设置
+- **修复**: 移除 `setGravity` 和所有 `updateWindow()` 调用
+- **效果**: 悬浮窗位置完全由用户拖拽控制
+
+### ✨ 功能优化
+
+**气泡显示优化**:
+- 悬浮窗尺寸从 220px 增大到 **300px**（预留 80px 气泡空间）
+- 气泡改用 `top: 5px` 定位，在模型头部上方完整显示
+- 长文本气泡支持滚动（max-height: 70px）
+
+**相关文件**:
+- `useFloatWindow.js` - 移除 setGravity/updateWindow，调整尺寸配置
+- `pet-live2d.html` - 气泡 CSS 布局优化
+
+详细修复记录请查阅 [BUG.md](./BUG.md)
+
+---
+
 - 支持部位：头部、身体、左手、右手、左脚、右脚
 - 每个部位可独立点击/长按，触发不同 AI 响应
 - 部位动画：摇头、点头、挥手、击掌、踢腿、跺脚
@@ -352,4 +380,4 @@ const url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/comple
 
 ---
 
-**最后更新**: 2025年12月7日
+**最后更新**: 2025年12月8日

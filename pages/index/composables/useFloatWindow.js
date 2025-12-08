@@ -34,14 +34,15 @@ const FLOAT_SIZES_V2 = {
     FULL: { w: 300, h: 300 }    // 警告模式
 };
 
-// Live2D 版本尺寸配置 (紧凑宽度，减少空白)
+// Live2D 版本尺寸配置 (增大高度预留气泡空间)
 const FLOAT_SIZES_LIVE2D = {
     SMALL: { w: 70, h: 120 },   // 迷你版
-    NORMAL: { w: 130, h: 220 }, // Live2D 默认（紧凑宽度）
-    BUBBLE: { w: 150, h: 250 }, // 气泡模式
-    LARGE: { w: 180, h: 300 },  // 大对话模式
-    FULL: { w: 240, h: 400 }    // 全屏模式
+    NORMAL: { w: 130, h: 300 }, // Live2D 默认: 220(模型) + 80(气泡)
+    BUBBLE: { w: 150, h: 320 }, // 气泡模式
+    LARGE: { w: 180, h: 350 },  // 大对话模式
+    FULL: { w: 240, h: 450 }    // 全屏模式
 };
+
 
 export function useFloatWindow(options = {}) {
     const {
@@ -103,15 +104,14 @@ export function useFloatWindow(options = {}) {
             }
             setFloatSize('NORMAL');
 
-            // 初始位置：屏幕右下角
-            floatWinInstance.value.setGravity(2); // 1 = 下左
+            // [BUG #112] 移除 setGravity 调用，避免位置被重置
+            // 悬浮窗位置完全由用户拖拽控制，不设置初始对齐位置
 
             floatWinInstance.value.setShowPattern(3); // 全局显示
             floatWinInstance.value.setDragEnable(true);
             // [BUG#103] 边缘吸附模式
-            // 测试: 1=仅左侧锁定, 3=仅上方锁定, 12=四角(效果不明显)
             // 使用 0=无吸附，允许自由拖拽
-            floatWinInstance.value.setSidePattern(12);
+            floatWinInstance.value.setSidePattern(0);
 
             // 监听 Web 消息 (增强版双向通信)
             floatWinInstance.value.onListenerWebData(handleWebMessage);
@@ -266,11 +266,8 @@ export function useFloatWindow(options = {}) {
         floatWinInstance.value.setFixedWidthHeight(true, w, h);
         currentSize.value = size;
 
-        // 需要调用 updateWindow 才能生效
-        if (isPetShown.value) {
-            debugLog("[Float] 调用 updateWindow()");
-            floatWinInstance.value.updateWindow();
-        }
+        // [BUG #112] 移除 updateWindow 调用，避免位置被重置
+        // setFixedWidthHeight 本身在创建时就会生效
     };
 
     /**
@@ -345,28 +342,11 @@ export function useFloatWindow(options = {}) {
             bubbleHideTimer = null;
         }
 
-        // 获取当前尺寸配置
         if (!floatWinInstance.value) return;
-        const sizes = FLOAT_SIZES_LIVE2D;
-        const currentSizeConfig = sizes[currentSize.value] || sizes.NORMAL;
 
-        // 根据文字长度计算气泡额外高度
-        const textLen = text.length;
-        const bubbleExtraHeight = Math.min(40 + Math.ceil(textLen / 12) * 14, 100);
-
-        // 扩大悬浮窗高度
-        const newHeight = currentSizeConfig.h + bubbleExtraHeight;
-        floatWinInstance.value.setFixedWidthHeight(
-            true,
-            floatWinInstance.value.convertHtmlPxToAndroidPx(currentSizeConfig.w),
-            floatWinInstance.value.convertHtmlPxToAndroidPx(newHeight)
-        );
-        floatWinInstance.value.updateWindow();
-
-        // 发送气泡消息到悬浮窗
+        // [BUG #112] 不再调用 updateWindow，避免位置重置
+        // 直接发送气泡消息，在固定尺寸内显示
         floatWinInstance.value.sendDataToJs(msgType, text);
-
-
 
         // 自动隐藏
         bubbleHideTimer = setTimeout(() => {
@@ -382,20 +362,9 @@ export function useFloatWindow(options = {}) {
         // #ifdef APP-PLUS
         if (!floatWinInstance.value) return;
 
-        debugLog('[Bubble] 恢复悬浮窗大小');
+        debugLog('[Bubble] 隐藏气泡');
 
-        // 恢复原始大小
-        const sizes = FLOAT_SIZES_LIVE2D;
-        const currentSizeConfig = sizes[currentSize.value] || sizes.NORMAL;
-
-        floatWinInstance.value.setFixedWidthHeight(
-            true,
-            floatWinInstance.value.convertHtmlPxToAndroidPx(currentSizeConfig.w),
-            floatWinInstance.value.convertHtmlPxToAndroidPx(currentSizeConfig.h)
-        );
-        floatWinInstance.value.updateWindow();
-
-        // 隐藏气泡
+        // [BUG #112] 不再调用 updateWindow，避免位置重置
         floatWinInstance.value.sendDataToJs(0, '');
 
         if (bubbleHideTimer) {

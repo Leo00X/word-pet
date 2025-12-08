@@ -51,20 +51,22 @@
             pointer-events: auto !important;
         }
 
-        /* 气泡在顶部（悬浮窗扩大时显示） */
+        /* 气泡在顶部显示 */
         .bubble {
             position: absolute;
             top: 5px;
             left: 50%;
-            transform: translateX(-50%) translateY(-10px);
+            transform: translateX(-50%) translateY(-5px);
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
             color: #fff;
-            padding: 8px 10px;
-            border-radius: 10px;
-            font-size: 11px;
-            line-height: 1.4;
-            max-width: 90%;
-            min-width: 50px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            max-width: 88%;
+            min-width: 60px;
+            max-height: 70px;
+            overflow-y: auto;
             text-align: center;
             opacity: 0;
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
@@ -74,6 +76,7 @@
             z-index: 100;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
             word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .bubble.show {
@@ -91,10 +94,10 @@
         .bubble::after {
             content: '';
             position: absolute;
-            bottom: -6px;
+            bottom: -8px;
             left: 50%;
             transform: translateX(-50%);
-            border-width: 6px 6px 0;
+            border-width: 8px 8px 0;
             border-style: solid;
             border-color: rgba(118, 75, 162, 0.95) transparent transparent transparent;
         }
@@ -340,7 +343,9 @@
         function showBubble(text, duration = 3000) {
             const b = document.getElementById('bubble');
             if (bubbleTimer) clearTimeout(bubbleTimer);
-            b.textContent = text; b.classList.add('show');
+            b.textContent = text;
+            b.classList.remove('angry');
+            b.classList.add('show');
             if (duration > 0) bubbleTimer = setTimeout(() => b.classList.remove('show'), duration);
         }
 
