@@ -326,11 +326,18 @@ const partedModeEnabled = ref(uni.getStorageSync('pet_parted_mode') || false);
 const currentLive2dModel = ref(uni.getStorageSync('live2d_model') || 'hiyori');
 
 // 切换 Live2D 模型
-const handleChangeLive2dModel = (modelName) => {
+const handleChangeLive2dModel = async (modelName) => {
     currentLive2dModel.value = modelName;
     uni.setStorageSync('live2d_model', modelName);
-    // 发送消息到悬浮窗切换模型
-    floatWindow.sendMessageToFloat(99, JSON.stringify({ model: modelName }));
+    
+    // 如果当前是 Live2D 模式，发送新模型数据
+    if (floatWindow.petHtmlVersion.value === 'live2d' && floatWindow.floatWinInstance.value) {
+        uni.showLoading({ title: '加载模型...' });
+        const { useLive2dLoader } = await import('./composables/useLive2dLoader.js');
+        const loader = useLive2dLoader();
+        await loader.sendModelToFloatWindow(floatWindow.floatWinInstance.value, modelName);
+        uni.hideLoading();
+    }
 };
 
 // ========== 2.1 页面生命周期 ==========

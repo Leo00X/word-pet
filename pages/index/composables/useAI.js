@@ -58,7 +58,18 @@ export function useAI() {
 
             // 4. 发送给悬浮窗 (Type 2=愤怒红色, 1=普通绿色)
             const msgType = type === 'bad' ? 2 : 1;
-            if (sendToFloat) sendToFloat(msgType, reply);
+            if (sendToFloat) {
+                sendToFloat(msgType, reply);
+                // 5. 发送 Live2D 情感标签
+                // type 10 = 动作, type 11 = 表情
+                if (type === 'bad') {
+                    sendToFloat(11, JSON.stringify({ expression: 'angry' }));
+                    sendToFloat(10, JSON.stringify({ motion: 'TapBody' }));
+                } else {
+                    sendToFloat(11, JSON.stringify({ expression: 'happy' }));
+                    sendToFloat(10, JSON.stringify({ motion: 'Idle' }));
+                }
+            }
         } catch (error) {
             console.error("AI Error", error);
             if (addLog) addLog("❌ AI连接失败，使用本地语音");
