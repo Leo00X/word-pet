@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pet Live2D - WordParasite</title>
+    <style>
+        /* ========== 全局重置 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ========== Canvas 容器 ========== */
+        #live2d-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+        }
+
+        #live2d-canvas {
+            display: block;
+        }
+
+        /* ========== 对话气泡 ========== */
+        .bubble {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: rgba(0, 0, 0, 0.85);
+            color: #00e676;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 160px;
+            min-width: 80px;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+            border: 1px solid #333;
+            z-index: 100;
+        }
+
+        .bubble.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+        }
+
+        /* ========== 加载提示 ========== */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00e676;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0, 230, 118, 0.3);
+            border-top-color: #00e676;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 对话气泡 -->
+    <div class="bubble" id="bubble">Loading...</div>
+
+    <!-- 加载指示器 -->
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <div>正在加载模型...</div>
+    </div>
+
+    <!-- Live2D 渲染容器 -->
+    <div id="live2d-container"></div>
+
+    <!-- 依赖库：PixiJS + pixi-live2d-display (使用 CDN) -->
+    <!-- 注意：生产环境建议下载到本地 -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+
+    <script>
+        // ========== 全局变量 ==========
+        let app = null;         // Pixi Application
+        let model = null;       // Live2D 模型实例
+        let bubbleTimer = null; // 气泡定时器
+
+        // ========== 模型配置 ==========
+        // 远程演示模型 (Shizuku - 经典测试模型)
+        // 你可以替换为本地路径，如 './skins/your-model/model.model3.json'
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json';
+
+        // ========== 初始化 ==========
+        async function init() {
+            console.log('[Live2D] 开始初始化...');
+
+            try {
+                // 1. 创建 Pixi 应用 (透明背景)
+                app = new PIXI.Application({
+                    view: document.createElement('canvas'),
+                    autoStart: true,
+                    resizeTo: window,
+                    backgroundAlpha: 0,  // 透明背景
+                    antialias: true
+                });
+
+                // 设置 canvas id 并添加到容器
+                app.view.id = 'live2d-canvas';
+                document.getElementById('live2d-container').appendChild(app.view);
+
+                // 2. 加载 Live2D 模型
+                console.log('[Live2D] 正在加载模型:', MODEL_URL);
+                model = await PIXI.live2d.Live2DModel.from(MODEL_URL);
+
+                // 3. 配置模型
+                setupModel(model);
+
+                // 4. 添加到舞台
+                app.stage.addChild(model);
+
+                // 5. 隐藏加载指示器
+                document.getElementById('loading').classList.add('hidden');
+
+                // 6. 显示欢迎气泡
+                showBubble('Live2D 加载完成！✨', 3000);
+
+                console.log('[Live2D] 初始化完成！');
+            } catch (error) {
+                console.error('[Live2D] 初始化失败:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: #ff5252;">加载失败</div>
+                    <div style="font-size: 10px; margin-top: 5px;">${error.message}</div>
+                `;
+            }
+        }
+
+        // ========== 配置模型 ==========
+        function setupModel(model) {
+            // 缩放和定位 (适配容器)
+            const scale = Math.min(
+                window.innerWidth / model.width * 0.9,
+                window.innerHeight / model.height * 0.9
+            );
+            model.scale.set(scale);
+
+            // 居中显示
+            model.x = window.innerWidth / 2;
+            model.y = window.innerHeight / 2;
+            model.anchor.set(0.5, 0.5);
+
+            // 开启交互
+            model.interactive = true;
+            model.buttonMode = true;
+
+            // 点击事件
+            model.on('hit', (hitAreas) => {
+                console.log('[Live2D] 点击区域:', hitAreas);
+
+                if (hitAreas.includes('Head') || hitAreas.includes('head')) {
+                    // 摸头
+                    model.motion('tap_head') || model.motion('touch_head') || playRandomMotion();
+                    sendGestureToApp('TAP', { part: 'head' });
+                } else if (hitAreas.includes('Body') || hitAreas.includes('body')) {
+                    // 摸身体
+                    model.motion('tap_body') || model.motion('touch_body') || playRandomMotion();
+                    sendGestureToApp('TAP', { part: 'body' });
+                } else {
+                    // 默认互动
+                    playRandomMotion();
+                    sendGestureToApp('TAP', { part: 'unknown' });
+                }
+            });
+
+            // 鼠标/手指跟随 (眼神跟踪)
+            document.addEventListener('pointermove', (e) => {
+                if (!model) return;
+                // 将屏幕坐标映射到 -1 ~ 1 范围
+                const rect = app.view.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width * 2 - 1;
+                const y = (e.clientY - rect.top) / rect.height * 2 - 1;
+                model.focus(x, y);
+            });
+
+            // 窗口大小变化时重新定位
+            window.addEventListener('resize', () => {
+                const newScale = Math.min(
+                    window.innerWidth / model.width * 0.9,
+                    window.innerHeight / model.height * 0.9
+                );
+                model.scale.set(newScale);
+                model.x = window.innerWidth / 2;
+                model.y = window.innerHeight / 2;
+            });
+        }
+
+        // ========== 播放随机动作 ==========
+        function playRandomMotion() {
+            if (!model || !model.internalModel || !model.internalModel.motionManager) return;
+
+            // 尝试播放 idle 或随机动作
+            const motionGroups = ['idle', 'tap', 'flick'];
+            for (const group of motionGroups) {
+                try {
+                    model.motion(group);
+                    return;
+                } catch (e) {
+                    // 该动作组不存在，尝试下一个
+                }
+            }
+        }
+
+        // ========== 气泡控制 ==========
+        function showBubble(text, duration = 3000) {
+            const bubble = document.getElementById('bubble');
+            if (bubbleTimer) clearTimeout(bubbleTimer);
+
+            bubble.textContent = text;
+            bubble.classList.add('show');
+
+            if (duration > 0) {
+                bubbleTimer = setTimeout(() => {
+                    bubble.classList.remove('show');
+                }, duration);
+            }
+        }
+
+        function hideBubble() {
+            const bubble = document.getElementById('bubble');
+            bubble.classList.remove('show');
+            if (bubbleTimer) {
+                clearTimeout(bubbleTimer);
+                bubbleTimer = null;
+            }
+        }
+
+        // ========== 切换表情 ==========
+        function setExpression(expressionName) {
+            if (!model) return;
+            try {
+                model.expression(expressionName);
+                console.log('[Live2D] 切换表情:', expressionName);
+            } catch (e) {
+                console.warn('[Live2D] 表情不存在:', expressionName);
+            }
+        }
+
+        // ========== 播放动作 ==========
+        function playMotion(motionGroup, motionIndex = 0) {
+            if (!model) return;
+            try {
+                model.motion(motionGroup, motionIndex);
+                console.log('[Live2D] 播放动作:', motionGroup, motionIndex);
+            } catch (e) {
+                console.warn('[Live2D] 动作不存在:', motionGroup);
+            }
+        }
+
+        // ========== 发送手势到 uni-app ==========
+        function sendGestureToApp(gesture, data = {}) {
+            const message = {
+                gesture: gesture,
+                part: data.part || null,
+                timestamp: Date.now()
+            };
+
+            // 使用悬浮窗插件的 API
+            if (typeof uniapp !== 'undefined' && uniapp.sendDataToUni) {
+                uniapp.sendDataToUni(100, JSON.stringify(message));
+                console.log('[Live2D] 发送手势到 App:', gesture, message);
+            } else {
+                console.warn('[Live2D] uniapp.sendDataToUni 不可用');
+            }
+        }
+
+        // ========== 接收 uni-app 消息 ==========
+        window.dataFromUniapp = function (type, msg) {
+            console.log('[Live2D] 收到消息:', type, msg);
+
+            try {
+                let data = msg;
+                if (typeof msg === 'string' && (msg.startsWith('{') || msg.startsWith('['))) {
+                    data = JSON.parse(msg);
+                }
+
+                switch (type) {
+                    case 0: // 隐藏气泡
+                        hideBubble();
+                        break;
+
+                    case 1: // 显示普通消息
+                        showBubble(typeof data === 'string' ? data : data.message || data.text);
+                        break;
+
+                    case 2: // 显示愤怒消息 (可配合表情)
+                        showBubble(typeof data === 'string' ? data : data.message || data.text);
+                        setExpression('angry') || setExpression('f03'); // 尝试设置愤怒表情
+                        break;
+
+                    case 3: // 恢复正常状态
+                        setExpression('normal') || setExpression('f01');
+                        break;
+
+                    case 10: // 播放指定动作
+                        if (data.motion) playMotion(data.motion, data.index || 0);
+                        break;
+
+                    case 11: // 设置表情
+                        if (data.expression) setExpression(data.expression);
+                        break;
+
+                    case 98: // 动画状态切换 (兼容 pet-v2)
+                        if (data.state === 'angry') setExpression('angry');
+                        else if (data.state === 'happy') setExpression('happy') || playMotion('tap');
+                        else setExpression('normal');
+                        break;
+
+                    case 99: // 更换模型 (未来扩展)
+                        if (data.modelUrl) {
+                            console.log('[Live2D] 请求更换模型:', data.modelUrl);
+                            // TODO: 实现模型热更换
+                        }
+                        break;
+
+                    default:
+                        console.log('[Live2D] 未知消息类型:', type);
+                }
+            } catch (err) {
+                console.error('[Live2D] 消息处理错误:', err);
+            }
+        };
+
+        // ========== 启动 ==========
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

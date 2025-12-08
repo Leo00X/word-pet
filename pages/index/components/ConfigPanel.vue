@@ -120,6 +120,16 @@
       />
     </view>
 
+    <!-- Live2D 渲染模式 -->
+    <view class="setting-item" @click="showRenderModeSelector">
+      <view class="icon-box">✨</view>
+      <view class="setting-text">
+        <text class="main-text">渲染模式</text>
+        <text class="sub-text">当前: {{ renderModeLabel }}</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-block">
       <text class="block-title">扫描频率 ({{ (monitorIntervalTime / 1000).toFixed(0) }} 秒/次)</text>
       <slider 
@@ -177,6 +187,20 @@ export default {
     partedModeEnabled: {
       type: Boolean,
       default: false
+    },
+    petRenderMode: {
+      type: String,
+      default: 'v1'  // 'v1' | 'v2' | 'live2d'
+    }
+  },
+  computed: {
+    renderModeLabel() {
+      const labels = {
+        'v1': '经典模式',
+        'v2': '分层模式 (v2)',
+        'live2d': 'Live2D 🌟'
+      };
+      return labels[this.petRenderMode] || '经典模式';
     }
   },
   methods: {
@@ -188,6 +212,25 @@ export default {
     },
     handlePartedModeToggle(e) {
       this.$emit('toggle-parted-mode', e.detail.value);
+    },
+    showRenderModeSelector() {
+      const modes = [
+        { id: 'v1', name: '👻 经典模式', desc: '简洁稳定' },
+        { id: 'v2', name: '🧩 分层模式', desc: '部位交互' },
+        { id: 'live2d', name: '✨ Live2D', desc: '高清动画（实验性）' }
+      ];
+      
+      uni.showActionSheet({
+        itemList: modes.map(m => `${m.name} - ${m.desc}`),
+        success: (res) => {
+          const selected = modes[res.tapIndex];
+          this.$emit('change-render-mode', selected.id);
+          uni.showToast({ 
+            title: `已切换为${selected.name}`, 
+            icon: 'none' 
+          });
+        }
+      });
     },
     navigateToAISelector() {
       uni.navigateTo({

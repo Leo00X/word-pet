@@ -33,6 +33,15 @@ const FLOAT_SIZES_V2 = {
     FULL: { w: 300, h: 300 }    // 警告模式
 };
 
+// Live2D 版本尺寸配置 (需要更大的画布以渲染完整模型)
+const FLOAT_SIZES_LIVE2D = {
+    SMALL: { w: 80, h: 100 },   // 迷你版
+    NORMAL: { w: 200, h: 300 }, // Live2D 默认（更大以显示完整模型）
+    BUBBLE: { w: 200, h: 300 }, // 气泡模式
+    LARGE: { w: 280, h: 400 },  // 大对话模式
+    FULL: { w: 350, h: 450 }    // 全屏模式
+};
+
 export function useFloatWindow(options = {}) {
     const {
         onPermissionDenied,  // 权限不足回调
@@ -47,7 +56,7 @@ export function useFloatWindow(options = {}) {
     const petMessage = ref("等待指令...");
     const floatWinInstance = ref(null);
     const currentSize = ref('NORMAL');
-    const petHtmlVersion = ref(uni.getStorageSync('pet_html_version') || 'v1'); // 'v1' | 'v2'
+    const petHtmlVersion = ref(uni.getStorageSync('pet_html_version') || 'v1'); // 'v1' | 'v2' | 'live2d'
 
     /**
      * 显示悬浮窗
@@ -62,7 +71,12 @@ export function useFloatWindow(options = {}) {
 
         try {
             // 根据版本选择 HTML 文件
-            const htmlFile = petHtmlVersion.value === 'v2' ? '/static/pet-v2.html' : '/static/pet.html';
+            let htmlFile = '/static/pet.html'; // v1 默认
+            if (petHtmlVersion.value === 'v2') {
+                htmlFile = '/static/pet-v2.html';
+            } else if (petHtmlVersion.value === 'live2d') {
+                htmlFile = '/static/pet-live2d.html';
+            }
             const absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
             debugLog('[Float] 加载 HTML:', htmlFile);
 
@@ -214,7 +228,12 @@ export function useFloatWindow(options = {}) {
         }
 
         // 根据版本选择尺寸配置
-        const SIZES = petHtmlVersion.value === 'v2' ? FLOAT_SIZES_V2 : FLOAT_SIZES_V1;
+        let SIZES = FLOAT_SIZES_V1;
+        if (petHtmlVersion.value === 'v2') {
+            SIZES = FLOAT_SIZES_V2;
+        } else if (petHtmlVersion.value === 'live2d') {
+            SIZES = FLOAT_SIZES_LIVE2D;
+        }
         const config = SIZES[size] || SIZES.NORMAL;
         const w = floatWinInstance.value.convertHtmlPxToAndroidPx(config.w);
         const h = floatWinInstance.value.convertHtmlPxToAndroidPx(config.h);
@@ -256,7 +275,7 @@ export function useFloatWindow(options = {}) {
      * @param {string} version - 'v1' | 'v2'
      */
     const setPetVersion = (version) => {
-        if (version !== 'v1' && version !== 'v2') {
+        if (version !== 'v1' && version !== 'v2' && version !== 'live2d') {
             debugLog('[Float] 无效版本:', version);
             return;
         }
@@ -266,7 +285,12 @@ export function useFloatWindow(options = {}) {
 
         // 如果悬浮窗正在显示，需要重新加载并更新尺寸
         if (isPetShown.value && floatWinInstance.value) {
-            const htmlFile = version === 'v2' ? '/static/pet-v2.html' : '/static/pet.html';
+            let htmlFile = '/static/pet.html';
+            if (version === 'v2') {
+                htmlFile = '/static/pet-v2.html';
+            } else if (version === 'live2d') {
+                htmlFile = '/static/pet-live2d.html';
+            }
             const absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
             floatWinInstance.value.loadUrl(absolutePath);
             // 同步更新悬浮窗尺寸以匹配新版本
@@ -294,7 +318,8 @@ export function useFloatWindow(options = {}) {
         setPetVersion,
         // 常量
         FLOAT_SIZES_V1,
-        FLOAT_SIZES_V2
+        FLOAT_SIZES_V2,
+        FLOAT_SIZES_LIVE2D
     };
 }
 
