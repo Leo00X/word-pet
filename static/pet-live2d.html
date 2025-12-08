@@ -123,9 +123,17 @@
     <!-- Live2D 渲染容器 -->
     <div id="live2d-container"></div>
 
-    <!-- 依赖库：PixiJS + pixi-live2d-display (使用 CDN) -->
-    <!-- 注意：生产环境建议下载到本地 -->
-    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js"></script>
+    <!-- 
+        依赖库加载顺序：
+        1. Cubism Core SDK (Live2D 官方核心)
+        2. PixiJS v6 (渲染引擎)
+        3. pixi-live2d-display (连接器)
+    -->
+    <!-- Cubism 4 Core SDK -->
+    <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+    <!-- PixiJS v6 -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+    <!-- pixi-live2d-display (Cubism 4 专用版本) -->
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
 
     <script>
@@ -135,15 +143,42 @@
         let bubbleTimer = null; // 气泡定时器
 
         // ========== 模型配置 ==========
-        // 远程演示模型 (Shizuku - 经典测试模型)
-        // 你可以替换为本地路径，如 './skins/your-model/model.model3.json'
-        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json';
+        // 远程演示模型 (Hiyori - Cubism 4 模型)
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/hiyori/hiyori_pro_t10.model3.json';
+
+        // ========== 检查库加载状态 ==========
+        function checkLibraries() {
+            console.log('[Live2D] 检查库加载状态...');
+            console.log('[Live2D] window.Live2DCubismCore:', typeof window.Live2DCubismCore);
+            console.log('[Live2D] PIXI:', typeof PIXI);
+            console.log('[Live2D] PIXI.VERSION:', PIXI?.VERSION);
+            console.log('[Live2D] PIXI.live2d:', typeof PIXI?.live2d);
+            console.log('[Live2D] PIXI.live2d.Live2DModel:', typeof PIXI?.live2d?.Live2DModel);
+
+            if (typeof window.Live2DCubismCore === 'undefined') {
+                throw new Error('Cubism Core SDK 未加载');
+            }
+            if (typeof PIXI === 'undefined') {
+                throw new Error('PixiJS 未加载');
+            }
+            if (typeof PIXI.live2d === 'undefined') {
+                throw new Error('pixi-live2d-display 未加载');
+            }
+            if (typeof PIXI.live2d.Live2DModel === 'undefined') {
+                throw new Error('Live2DModel 类未定义');
+            }
+
+            return true;
+        }
 
         // ========== 初始化 ==========
         async function init() {
             console.log('[Live2D] 开始初始化...');
 
             try {
+                // 检查所有库是否正确加载
+                checkLibraries();
+
                 // 1. 创建 Pixi 应用 (透明背景)
                 app = new PIXI.Application({
                     view: document.createElement('canvas'),
@@ -159,7 +194,10 @@
 
                 // 2. 加载 Live2D 模型
                 console.log('[Live2D] 正在加载模型:', MODEL_URL);
-                model = await PIXI.live2d.Live2DModel.from(MODEL_URL);
+
+                model = await PIXI.live2d.Live2DModel.from(MODEL_URL, {
+                    autoInteract: false  // 手动控制交互
+                });
 
                 // 3. 配置模型
                 setupModel(model);
@@ -342,7 +380,7 @@
 
                     case 2: // 显示愤怒消息 (可配合表情)
                         showBubble(typeof data === 'string' ? data : data.message || data.text);
-                        setExpression('angry') || setExpression('f03'); // 尝试设置愤怒表情
+                        setExpression('angry') || setExpression('f03');
                         break;
 
                     case 3: // 恢复正常状态
