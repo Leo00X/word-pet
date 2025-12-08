@@ -47,11 +47,13 @@
         :randomChatHistoryCount="petInteraction.randomChat.chatHistory.value.length"
         :partedModeEnabled="partedModeEnabled"
         :petRenderMode="floatWindow.petHtmlVersion.value"
+        :currentLive2dModel="currentLive2dModel"
         @open-selector="handlers.openSelector"
         @interval-change="handlers.handleIntervalChange"
         @toggle-random-chat="handlers.handleToggleRandomChat"
         @toggle-parted-mode="(val) => { partedModeEnabled = val; floatWindow.setPetVersion(val ? 'v2' : 'v1') }"
         @change-render-mode="(mode) => { floatWindow.setPetVersion(mode); if(mode !== 'v1') partedModeEnabled = (mode === 'v2') }"
+        @change-live2d-model="handleChangeLive2dModel"
         @open-random-history="openModal('randomHistory')"
         @open-terminal="terminal.showTerminal.value = true"
         @clear-chat="chat.clearMessages"
@@ -319,6 +321,17 @@ const userMessageCount = indexState.userMessageCount;
 
 // 分层宠物模式状态
 const partedModeEnabled = ref(uni.getStorageSync('pet_parted_mode') || false);
+
+// Live2D 模型选择
+const currentLive2dModel = ref(uni.getStorageSync('live2d_model') || 'hiyori');
+
+// 切换 Live2D 模型
+const handleChangeLive2dModel = (modelName) => {
+    currentLive2dModel.value = modelName;
+    uni.setStorageSync('live2d_model', modelName);
+    // 发送消息到悬浮窗切换模型
+    floatWindow.sendMessageToFloat(99, JSON.stringify({ model: modelName }));
+};
 
 // ========== 2.1 页面生命周期 ==========
 const lifecycle = usePageLifecycle({

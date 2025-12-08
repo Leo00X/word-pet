@@ -130,6 +130,16 @@
       <text class="arrow">></text>
     </view>
 
+    <!-- Live2D 模型选择 (仅在 Live2D 模式下显示) -->
+    <view class="setting-item" v-if="petRenderMode === 'live2d'" @click="showLive2dModelSelector">
+      <view class="icon-box">🎀</view>
+      <view class="setting-text">
+        <text class="main-text">Live2D 模型</text>
+        <text class="sub-text">当前: {{ live2dModelLabel }}</text>
+      </view>
+      <text class="arrow">></text>
+    </view>
+
     <view class="setting-block">
       <text class="block-title">扫描频率 ({{ (monitorIntervalTime / 1000).toFixed(0) }} 秒/次)</text>
       <slider 
@@ -191,6 +201,10 @@ export default {
     petRenderMode: {
       type: String,
       default: 'v1'  // 'v1' | 'v2' | 'live2d'
+    },
+    currentLive2dModel: {
+      type: String,
+      default: 'hiyori'  // 'hiyori' | 'shizuku'
     }
   },
   computed: {
@@ -201,6 +215,13 @@ export default {
         'live2d': 'Live2D 🌟'
       };
       return labels[this.petRenderMode] || '经典模式';
+    },
+    live2dModelLabel() {
+      const labels = {
+        'hiyori': '🎀 Hiyori (短发校服)',
+        'shizuku': '🌸 Shizuku (长发制服)'
+      };
+      return labels[this.currentLive2dModel] || 'Hiyori';
     }
   },
   methods: {
@@ -227,6 +248,24 @@ export default {
           this.$emit('change-render-mode', selected.id);
           uni.showToast({ 
             title: `已切换为${selected.name}`, 
+            icon: 'none' 
+          });
+        }
+      });
+    },
+    showLive2dModelSelector() {
+      const models = [
+        { id: 'hiyori', name: '🎀 Hiyori', desc: '短发校服女生' },
+        { id: 'shizuku', name: '🌸 Shizuku', desc: '长发制服女生' }
+      ];
+      
+      uni.showActionSheet({
+        itemList: models.map(m => `${m.name} - ${m.desc}`),
+        success: (res) => {
+          const selected = models[res.tapIndex];
+          this.$emit('change-live2d-model', selected.id);
+          uni.showToast({ 
+            title: `切换到 ${selected.name}`, 
             icon: 'none' 
           });
         }

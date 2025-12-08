@@ -116,7 +116,7 @@
 
     <div id="live2d-container"></div>
 
-    <!-- 本地化 JS 库 -->
+    <!-- 本地化 JS 库 (使用 static/lib/ 的完整版) -->
     <script src="./lib/live2dcubismcore.min.js"></script>
     <script src="./lib/pixi.min.js"></script>
     <script src="./lib/cubism4.min.js"></script>
@@ -126,8 +126,15 @@
         let model = null;
         let bubbleTimer = null;
 
-        // 使用本地模型路径
-        const MODEL_URL = './live2d-models/hiyori/hiyori_pro_t10.model3.json';
+        // 可用模型列表
+        const MODELS = {
+            hiyori: './live2d-models/hiyori/Hiyori.model3.json',
+            shizuku: './live2d/model/shizuku/shizuku.model.json'
+        };
+
+        // 当前使用的模型 (可通过 uni-app 消息切换)
+        let currentModelName = 'hiyori';
+        const MODEL_URL = MODELS[currentModelName];
 
         function checkLibraries() {
             console.log('[Live2D] 检查库加载状态...');
@@ -136,13 +143,13 @@
             console.log('[Live2D] PIXI.live2d:', typeof PIXI?.live2d);
 
             if (typeof window.Live2DCubismCore === 'undefined') {
-                throw new Error('Cubism Core 未加载，请检查 lib/live2dcubismcore.min.js');
+                throw new Error('Cubism Core 未加载');
             }
             if (typeof PIXI === 'undefined') {
-                throw new Error('PixiJS 未加载，请检查 lib/pixi.min.js');
+                throw new Error('PixiJS 未加载');
             }
             if (typeof PIXI.live2d === 'undefined') {
-                throw new Error('pixi-live2d-display 未加载，请检查 lib/cubism4.min.js');
+                throw new Error('pixi-live2d-display 未加载');
             }
             return true;
         }
@@ -202,10 +209,10 @@
                 console.log('[Live2D] 点击区域:', hitAreas);
 
                 if (hitAreas.includes('Head') || hitAreas.includes('head')) {
-                    model.motion('tap_head') || model.motion('touch_head') || playRandomMotion();
+                    model.motion('TapHead') || model.motion('tap_head') || playRandomMotion();
                     sendGestureToApp('TAP', { part: 'head' });
                 } else if (hitAreas.includes('Body') || hitAreas.includes('body')) {
-                    model.motion('tap_body') || model.motion('touch_body') || playRandomMotion();
+                    model.motion('TapBody') || model.motion('tap_body') || playRandomMotion();
                     sendGestureToApp('TAP', { part: 'body' });
                 } else {
                     playRandomMotion();
@@ -234,7 +241,7 @@
 
         function playRandomMotion() {
             if (!model || !model.internalModel || !model.internalModel.motionManager) return;
-            const motionGroups = ['idle', 'tap', 'flick'];
+            const motionGroups = ['Idle', 'idle', 'TapBody', 'tap'];
             for (const group of motionGroups) {
                 try {
                     model.motion(group);
@@ -296,6 +303,35 @@
             }
         }
 
+        // 切换模型 (未来扩展)
+        async function switchModel(modelName) {
+            if (!MODELS[modelName]) {
+                console.warn('[Live2D] 未知模型:', modelName);
+                return;
+            }
+
+            console.log('[Live2D] 切换模型到:', modelName);
+            currentModelName = modelName;
+
+            // 移除旧模型
+            if (model) {
+                app.stage.removeChild(model);
+                model.destroy();
+            }
+
+            // 加载新模型
+            try {
+                model = await PIXI.live2d.Live2DModel.from(MODELS[modelName], {
+                    autoInteract: false
+                });
+                setupModel(model);
+                app.stage.addChild(model);
+                showBubble(`切换到 ${modelName}！`, 2000);
+            } catch (e) {
+                console.error('[Live2D] 切换模型失败:', e);
+            }
+        }
+
         window.dataFromUniapp = function (type, msg) {
             console.log('[Live2D] 收到消息:', type, msg);
             try {
@@ -316,8 +352,12 @@
                     case 11: if (data.expression) setExpression(data.expression); break;
                     case 98:
                         if (data.state === 'angry') setExpression('angry');
-                        else if (data.state === 'happy') setExpression('happy') || playMotion('tap');
+                        else if (data.state === 'happy') setExpression('happy') || playMotion('TapBody');
                         else setExpression('normal');
+                        break;
+                    case 99:
+                        // 切换模型
+                        if (data.model) switchModel(data.model);
                         break;
                     default: console.log('[Live2D] 未知消息类型:', type);
                 }
