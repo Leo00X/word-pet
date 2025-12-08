@@ -74,6 +74,18 @@ export function useFloatWindow(options = {}) {
         }
 
         try {
+            // ========== 开发调试模式配置 ==========
+            // 启用后可通过本地 HTTP 服务器加载 HTML，实现热更新
+            // 使用方法:
+            // 1. 在电脑上启动 HTTP 服务器: cd word-pet && npx http-server -p 8080
+            // 2. 将 DEV_MODE 设为 true，DEV_SERVER_IP 设为电脑局域网 IP
+            // 3. 手机和电脑连接同一 WiFi
+            // 4. 修改 HTML 后悬浮窗关闭再打开即可看到更新
+            const DEV_MODE = true;  // 🔧 调试时改为 true
+            const DEV_SERVER_IP = '172.19.216.67';  // 🔧 改为你的电脑 IP
+            const DEV_SERVER_PORT = '8080';
+            // ==========================================
+
             // 根据版本选择 HTML 文件
             let htmlFile = '/static/pet.html'; // v1 默认
             let absolutePath;
@@ -83,8 +95,17 @@ export function useFloatWindow(options = {}) {
             } else if (petHtmlVersion.value === 'live2d') {
                 htmlFile = '/static/pet-live2d.html';
             }
-            absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
-            debugLog('[Float] 加载 HTML:', absolutePath);
+
+            // 根据模式选择加载方式
+            if (DEV_MODE) {
+                // 开发模式: 通过 HTTP 加载（实时更新）
+                absolutePath = `http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}${htmlFile}`;
+                debugLog('[Float] 🔧 开发模式 - 加载远程 HTML:', absolutePath);
+            } else {
+                // 生产模式: 加载打包的本地文件
+                absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
+                debugLog('[Float] 加载本地 HTML:', absolutePath);
+            }
 
             if (!floatWinInstance.value) {
                 floatWinInstance.value = new FloatWindow();

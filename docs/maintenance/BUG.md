@@ -502,3 +502,27 @@ const showSkinModal = computed(() => modals.skin);
   - 插件返回的 WebView 对象在 uni-app 层无法正确调用 `getSettings` (返回 null)
   - H5 页面内 `window.getWebView()` 未能成功启用权限
 - **当前规避**: 继续使用 **Object URL 映射方案** (将本地文件转为 Blob URL加载)，虽然消耗内存但稳定可用
+- **待办 🔔**: **插件更新后优化**（作者已承诺下版本加入权限配置）
+  - [ ] 监控 [android-floatwindow](https://ext.dcloud.net.cn/plugin?id=20324) 版本更新
+  - [ ] 测试新版本 `setAllowFileAccessFromFileURLs` API
+  - [ ] 验证后简化 `useLive2dLoader.js`（移除 Object URL 映射）
+  - [ ] 预计代码从 155 行→20 行，启动速度提升 50%+
+
+---
+
+## 🚀 Live2D 未来拓展
+
+详细规划已独立为专门文档：**[LIVE2D_ROADMAP.md](../guides/LIVE2D_ROADMAP.md)**
+
+包含：
+- ✅ 已实现功能 (8项)
+- 🔧 部分实现功能 (3项)
+- 🔜 近期规划 (插件更新后)
+- 🎯 中期规划 (7项功能增强)
+- 🌟 远期规划 (9项高级功能)
+
+---
+
+**更新时间**: 2025-12-08
+
+**更新时间**: 2025-12-08

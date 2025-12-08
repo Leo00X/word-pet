@@ -96,11 +96,16 @@
 - **本地加载引擎**: 独创 Object URL 映射方案，无需 Web Server 即可加载本地模型
 - **情感交互**: AI 情感标签 (happy/angry) 实时驱动模型表情与动作
 - **动态气泡**: 悬浮窗预留气泡空间 (300px)，气泡在模型上方完整显示
+- **部位联动交互** 🆕: 点击不同区域触发对应的参数动画
+  - 头部: 脸红 + 眯眼笑 + 歪头
+  - 身体: 缩肩 + 眉毛上扬 + 微张嘴
+  - 腿部: 身体倾斜 + 睁大眼 + 张大嘴
 
 **技术实现**:
 - 渲染: `pixi-live2d-display` + `PixiJS`
 - 通信: Object URL Blob 映射
 - 交互: `useLive2dLoader.js`
+- 参数动画: `animateParam()` + `playPartAnimation()`
 
 **使用方式**:
 - 自动检测: 根据配置加载 `pet-live2d.html`

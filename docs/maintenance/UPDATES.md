@@ -2,6 +2,48 @@
 
 ---
 
+## 🎉 2025-12-08 - Live2D 部位联动交互
+
+### ✨ 新增功能
+
+**Live2D 参数动画系统**:
+- 点击不同区域触发对应的参数动画效果
+- 头部: 脸红 + 眯眼笑 + 歪头 (`ParamCheek` + `ParamEyeLSmile`)
+- 身体: 缩肩 + 眉毛上扬 + 微张嘴 (`ParamShoulder` + `ParamBrowLY`)
+- 腿部: 身体倾斜 + 睁大眼 + 张大嘴 (`ParamBodyAngleZ` + `ParamMouthOpenY`)
+
+**技术要点**:
+- 坐标区域检测 (`getClickedPart`)
+- 参数渐变动画带 easeOut 缓动 (`animateParam`)
+- 自动停止当前动作防止参数被覆盖
+- 1.5秒后自动恢复 Idle 动画
+
+**相关文件**:
+- `static/pet-live2d.html` - 新增 97 行交互代码
+
+---
+
+## 🔧 2025-12-08 - 开发调试模式 + Live2D 路线图
+
+### ✨ 新增功能
+
+**悬浮窗 HTML 热更新调试**:
+- 通过本地 HTTP 服务器实时预览修改
+- 无需重新打基座，修改后关闭再打开悬浮窗即可生效
+- 配置说明已添加到 `DEVELOPMENT.md`
+
+**Live2D 路线图文档**:
+- 新建 `docs/guides/LIVE2D_ROADMAP.md`
+- 包含已实现(8项)、部分实现(3项)、未来规划(近期/中期/远期)
+- 从 `BUG.md` 拆分独立
+
+**相关文件**:
+- `useFloatWindow.js` - DEV_MODE 配置 (L85-87)
+- `DEVELOPMENT.md` - 热更新说明 (L55-83)
+- `docs/guides/LIVE2D_ROADMAP.md` - 新文档
+
+---
+
 ## 🎉 2025-12-08 - 悬浮窗位置修复 + 气泡显示优化
 
 ### 🐛 Bug 修复

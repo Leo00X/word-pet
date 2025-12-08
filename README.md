@@ -1,6 +1,6 @@
 👾 WordParasite (单词寄生兽) | Desktop AI Companion
 
-> **📅 最新更新**: 2025-12-08 - 🎉 Live2D 系统集成与 UI 优化
+> **📅 最新更新**: 2025-12-08 - 🎉 Live2D 部位联动交互 + 开发调试模式
 > 📖 功能指南: [悬浮窗用户指南](./docs/guides/FLOAT_WINDOW_GUIDE.md) | [更新日志](./docs/maintenance/UPDATES.md) | [AI使用指南](./docs/guides/AI_GUIDE.md)  
 > 🛡️ **开发者必读**: [BUG防范指南](./docs/maintenance/bug_prevention_guide.md) - 18个易错案例 + 三轮审查方法
 
@@ -12,6 +12,7 @@
 - 📖 [用户指南](./README.md) - 本文档，项目介绍和使用指南
 - 🎮 [悬浮窗使用指南](./docs/guides/FLOAT_WINDOW_GUIDE.md) - 智能交互系统说明
 - 🤖 [AI 系统配置](./docs/guides/AI_GUIDE.md) - 多模型配置教程
+- 🎨 [Live2D 路线图](./docs/guides/LIVE2D_ROADMAP.md) - 功能规划与未来愿景 🆕
 
 ### 开发文档
 - 🚀 **[开发者指南](./DEVELOPMENT.md)** - 快速上手开发 ⭐ NEW
@@ -193,6 +194,8 @@ word-pet/
 [x] **悬浮窗分层宠物模式** (图片实体 + 部位交互) ✅ 2025-12-07
 [x] **热区 AI 混合响应** (本地/云端策略 + 心情影响) ✅ 2025-12-08
 [x] **Live2D 系统集成** (Cubism 2/4 + 本地加载 + 情感交互) ✅ 2025-12-08
+[x] **Live2D 部位联动** (坐标区域检测 + 参数动画 + 不同部位反应) ✅ 2025-12-08
+[x] **开发调试模式** (悬浮窗 HTML 热更新 + 本地 HTTP 服务器) ✅ 2025-12-08
 
 #### Medium Priority (P1)
 

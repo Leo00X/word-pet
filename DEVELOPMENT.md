@@ -52,6 +52,35 @@
    运行 → 运行到手机 → 选择自定义调试基座
    ```
 
+### 🔧 悬浮窗 HTML 热更新调试 (推荐)
+
+修改 `pet.html` / `pet-live2d.html` 后无需重新打基座，通过本地 HTTP 服务器实时预览！
+
+**配置步骤**:
+
+1. **启动本地服务器**
+   ```bash
+   cd d:\HBuilderX\word-pet
+   python -m http.server 8080
+   # 或 npx http-server -p 8080 --cors
+   ```
+
+2. **获取电脑 IP**
+   ```bash
+   ipconfig   # 找 WLAN 的 IPv4 地址，如 192.168.1.100
+   ```
+
+3. **修改配置** (`useFloatWindow.js` 第 85-87 行)
+   ```javascript
+   const DEV_MODE = true;  // 🔧 开启调试模式
+   const DEV_SERVER_IP = '192.168.1.100';  // 🔧 你的电脑 IP
+   const DEV_SERVER_PORT = '8080';
+   ```
+
+4. **测试**：修改 HTML 后，关闭再打开悬浮窗即可生效！
+
+> ⚠️ **调试完记得改回 `DEV_MODE = false`**，否则离开 WiFi 无法使用
+
 ---
 
 ## 📂 项目结构
