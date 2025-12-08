@@ -1,6 +1,6 @@
 👾 WordParasite (单词寄生兽) | Desktop AI Companion
 
-> **📅 最新更新**: 2025-12-07 - 🎉 悬浮窗图片实体与分层互动模式上线
+> **📅 最新更新**: 2025-12-08 - 🎉 Live2D 系统集成与 UI 优化
 > 📖 功能指南: [悬浮窗用户指南](./docs/guides/FLOAT_WINDOW_GUIDE.md) | [更新日志](./docs/maintenance/UPDATES.md) | [AI使用指南](./docs/guides/AI_GUIDE.md)  
 > 🛡️ **开发者必读**: [BUG防范指南](./docs/maintenance/bug_prevention_guide.md) - 18个易错案例 + 三轮审查方法
 
@@ -192,6 +192,7 @@ word-pet/
 [x] **数字灵魂架构 (HCDS)** - 混合记忆引擎 ✅ 2025-12-07
 [x] **悬浮窗分层宠物模式** (图片实体 + 部位交互) ✅ 2025-12-07
 [x] **热区 AI 混合响应** (本地/云端策略 + 心情影响) ✅ 2025-12-08
+[x] **Live2D 系统集成** (Cubism 2/4 + 本地加载 + 情感交互) ✅ 2025-12-08
 
 #### Medium Priority (P1)
 

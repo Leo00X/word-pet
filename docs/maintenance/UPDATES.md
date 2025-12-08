@@ -31,6 +31,38 @@
 
 ---
 
+## 🎉 2025-12-08 (Live2D) - Live2D 系统集成与 UI 重构
+
+### ✨ 新增功能
+
+**Live2D 动态立绘系统**:
+- **本地加载引擎 (Object URL)**: 独创方案解决 `File` 对象加载限制，无需 Web Server 即可运行。
+- **双内核支持**: 兼容 Cubism 2.1 (Shizuku) 和 Cubism 4.0 (Hiyori) 模型。
+- **情感交互**: AI `angry`/`happy` 标签实时驱动模型表情和动作。
+- **动态气泡 UI**: 
+  - 气泡显示时悬浮窗自动向上伸展。
+  - 模型固定底部显示，气泡显示在顶部扩展区。
+  - 支持 `angry` 红色警示样式。
+
+**点击穿透优化**:
+- 悬浮窗非交互区域（透明背景）完全点击穿透。
+- 仅 Live2D Canvas 接收点击事件。
+
+**相关模块**:
+- `static/pet-live2d.html` - 新版渲染容器 (320行)
+- `pages/index/composables/useLive2dLoader.js` - 本地加载器
+- `pages/index/composables/useFloatWindow.js` - 动态尺寸调整
+
+### 🐛 Bug 修复
+
+修复了 2 个相关问题：
+- **"Unknown settings JSON"**: 使用 Object URL 映射彻底解决本地加载路径解析问题。
+- **气泡截断**: 通过动态调整悬浮窗高度（普通 220px -> 气泡显示 280px）解决模型被遮挡问题。
+
+详细修复记录请查阅 [BUG.md](./BUG.md)
+
+---
+
 ## 🎉 2025-12-08 - 热区 AI 混合响应系统上线
 
 ### ✨ 新增功能

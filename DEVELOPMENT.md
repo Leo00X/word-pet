@@ -153,6 +153,7 @@ utils/
 | `usePermissions.js` | 权限管理 | 80 | 悬浮窗/使用统计权限检查 |
 | `useTerminal.js` | 伪终端 | 50 | 日志显示 |
 | `useVectorMemory.js` | 向量记忆 | 360 | 语义搜索 (Embedding)、知识提取 |
+| `useLive2dLoader.js` | Live2D 加载 | 320 | 本地模型加载(Object URL)、表情动作驱动 |
 
 #### Composable 使用模式
 

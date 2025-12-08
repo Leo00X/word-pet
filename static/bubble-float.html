@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bubble Float</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+            font-family: sans-serif;
+            user-select: none;
+            pointer-events: none;
+            /* 整体点击穿透 */
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4), 0 0 20px rgba(118, 75, 162, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            word-wrap: break-word;
+            animation: bubbleIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        /* 气泡小尾巴（朝下指向模型） */
+        .bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: rgba(118, 75, 162, 0.95) transparent transparent transparent;
+        }
+
+        @keyframes bubbleIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(10px) scale(0.8);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+        }
+
+        /* 愤怒模式（红色渐变） */
+        .bubble.angry {
+            background: linear-gradient(135deg, rgba(255, 87, 87, 0.95) 0%, rgba(200, 40, 80, 0.95) 100%);
+            box-shadow: 0 4px 15px rgba(255, 87, 87, 0.4), 0 0 20px rgba(200, 40, 80, 0.2);
+        }
+
+        .bubble.angry::after {
+            border-color: rgba(200, 40, 80, 0.95) transparent transparent transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bubble" id="bubble">...</div>
+
+    <script>
+        // 接收 uni-app 消息
+        window.dataFromUniapp = function (type, msg) {
+            console.log('[Bubble] 收到消息:', type, msg);
+            const bubble = document.getElementById('bubble');
+
+            let data = msg;
+            try {
+                if (typeof msg === 'string' && msg.startsWith('{')) {
+                    data = JSON.parse(msg);
+                }
+            } catch (e) { }
+
+            switch (type) {
+                case 1: // 普通消息（紫色）
+                    bubble.className = 'bubble';
+                    bubble.innerHTML = typeof data === 'string' ? data : (data.message || data.text || '');
+                    break;
+                case 2: // 愤怒消息（红色）
+                    bubble.className = 'bubble angry';
+                    bubble.innerHTML = typeof data === 'string' ? data : (data.message || data.text || '');
+                    break;
+            }
+        };
+
+        // 页面加载完成通知
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('[Bubble] 气泡悬浮窗就绪');
+        });
+    </script>
+</body>
+
+</html>

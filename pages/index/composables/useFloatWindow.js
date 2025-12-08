@@ -34,13 +34,13 @@ const FLOAT_SIZES_V2 = {
     FULL: { w: 300, h: 300 }    // 警告模式
 };
 
-// Live2D 版本尺寸配置 (Hiyori 模型比例约 2:3)
+// Live2D 版本尺寸配置 (紧凑宽度，减少空白)
 const FLOAT_SIZES_LIVE2D = {
-    SMALL: { w: 80, h: 120 },   // 迷你版
-    NORMAL: { w: 160, h: 240 }, // Live2D 默认（紧凑）
-    BUBBLE: { w: 180, h: 270 }, // 气泡模式
-    LARGE: { w: 220, h: 330 },  // 大对话模式
-    FULL: { w: 280, h: 420 }    // 全屏模式
+    SMALL: { w: 70, h: 120 },   // 迷你版
+    NORMAL: { w: 130, h: 220 }, // Live2D 默认（紧凑宽度）
+    BUBBLE: { w: 150, h: 250 }, // 气泡模式
+    LARGE: { w: 180, h: 300 },  // 大对话模式
+    FULL: { w: 240, h: 400 }    // 全屏模式
 };
 
 export function useFloatWindow(options = {}) {
@@ -56,8 +56,10 @@ export function useFloatWindow(options = {}) {
     const isPetShown = ref(false);
     const petMessage = ref("等待指令...");
     const floatWinInstance = ref(null);
+    const bubbleWinInstance = ref(null);  // 独立气泡悬浮窗
     const currentSize = ref('NORMAL');
     const petHtmlVersion = ref(uni.getStorageSync('pet_html_version') || 'v1'); // 'v1' | 'v2' | 'live2d'
+    let bubbleHideTimer = null;  // 气泡自动隐藏定时器
 
     /**
      * 显示悬浮窗
@@ -212,10 +214,17 @@ export function useFloatWindow(options = {}) {
 
     /**
      * 发送消息到悬浮窗
-     * @param {number} type - 消息类型
+     * @param {number} type - 消息类型 (1=普通消息, 2=愤怒消息, 其他类型正常发送)
      * @param {string} msg - 消息内容
      */
     const sendMessageToFloat = (type, msg) => {
+        // Live2D 模式：气泡消息(type 1/2)路由到独立悬浮窗
+        if (petHtmlVersion.value === 'live2d' && (type === 1 || type === 2)) {
+            showBubble(type, typeof msg === 'string' ? msg : JSON.stringify(msg));
+            return;
+        }
+
+        // 其他模式或其他消息类型，正常发送到模型悬浮窗
         if (floatWinInstance.value) {
             floatWinInstance.value.sendDataToJs(type, msg);
         }
@@ -313,6 +322,89 @@ export function useFloatWindow(options = {}) {
         }
     };
 
+    /**
+     * [Live2D] 显示独立气泡悬浮窗
+     * @param {number} msgType - 消息类型 (1=普通, 2=愤怒)
+     * @param {string} text - 气泡内容
+     * @param {number} duration - 显示时长(毫秒)，默认 4000
+     */
+    const showBubble = (msgType, text, duration = 4000) => {
+        // 仅 Live2D 模式使用独立气泡
+        if (petHtmlVersion.value !== 'live2d') {
+            // 非 Live2D 模式直接发送到模型悬浮窗
+            sendMessageToFloat(msgType, text);
+            return;
+        }
+
+        // #ifdef APP-PLUS
+        debugLog('[Bubble] 显示气泡:', text.substring(0, 20) + '...');
+
+        // 清除之前的定时器
+        if (bubbleHideTimer) {
+            clearTimeout(bubbleHideTimer);
+            bubbleHideTimer = null;
+        }
+
+        // 获取当前尺寸配置
+        if (!floatWinInstance.value) return;
+        const sizes = FLOAT_SIZES_LIVE2D;
+        const currentSizeConfig = sizes[currentSize.value] || sizes.NORMAL;
+
+        // 根据文字长度计算气泡额外高度
+        const textLen = text.length;
+        const bubbleExtraHeight = Math.min(40 + Math.ceil(textLen / 12) * 14, 100);
+
+        // 扩大悬浮窗高度
+        const newHeight = currentSizeConfig.h + bubbleExtraHeight;
+        floatWinInstance.value.setFixedWidthHeight(
+            true,
+            floatWinInstance.value.convertHtmlPxToAndroidPx(currentSizeConfig.w),
+            floatWinInstance.value.convertHtmlPxToAndroidPx(newHeight)
+        );
+        floatWinInstance.value.updateWindow();
+
+        // 发送气泡消息到悬浮窗
+        floatWinInstance.value.sendDataToJs(msgType, text);
+
+
+
+        // 自动隐藏
+        bubbleHideTimer = setTimeout(() => {
+            hideBubble();
+        }, duration);
+        // #endif
+    };
+
+    /**
+     * [Live2D] 隐藏气泡（恢复悬浮窗大小）
+     */
+    const hideBubble = () => {
+        // #ifdef APP-PLUS
+        if (!floatWinInstance.value) return;
+
+        debugLog('[Bubble] 恢复悬浮窗大小');
+
+        // 恢复原始大小
+        const sizes = FLOAT_SIZES_LIVE2D;
+        const currentSizeConfig = sizes[currentSize.value] || sizes.NORMAL;
+
+        floatWinInstance.value.setFixedWidthHeight(
+            true,
+            floatWinInstance.value.convertHtmlPxToAndroidPx(currentSizeConfig.w),
+            floatWinInstance.value.convertHtmlPxToAndroidPx(currentSizeConfig.h)
+        );
+        floatWinInstance.value.updateWindow();
+
+        // 隐藏气泡
+        floatWinInstance.value.sendDataToJs(0, '');
+
+        if (bubbleHideTimer) {
+            clearTimeout(bubbleHideTimer);
+            bubbleHideTimer = null;
+        }
+        // #endif
+    };
+
     return {
         // 状态
         isPetShown,
@@ -330,6 +422,8 @@ export function useFloatWindow(options = {}) {
         setSidePattern,
         reinitInstance,
         setPetVersion,
+        showBubble,      // [新] 独立气泡
+        hideBubble,      // [新] 隐藏气泡
         // 常量
         FLOAT_SIZES_V1,
         FLOAT_SIZES_V2,

@@ -87,6 +87,27 @@
 
 ---
 
+### 4. Live2D 动态立绘系统 ⭐⭐⭐⭐⭐
+
+**状态**: ✅ 已完成 (2025-12-08)
+
+**功能描述**:
+- **双内核支持**: 完美兼容 Cubism 2.1 (Shizuku) 和 Cubism 4.0 (Hiyori) 模型
+- **本地加载引擎**: 独创 Object URL 映射方案，无需 Web Server 即可加载本地模型
+- **情感交互**: AI 情感标签 (happy/angry) 实时驱动模型表情与动作
+- **动态气泡**: 悬浮窗随气泡内容自动伸缩，避免遮挡模型
+
+**技术实现**:
+- 渲染: `pixi-live2d-display` + `PixiJS`
+- 通信: Object URL Blob 映射
+- 交互: `useLive2dLoader.js`
+
+**使用方式**:
+- 自动检测: 根据配置加载 `pet-live2d.html`
+- 模型切换: 自动识别 `.model.json` (v2) 或 `.model3.json` (v4)
+
+---
+
 ## 🤖 AI 系统
 
 ### 1. 多模型支持 ⭐⭐⭐⭐⭐
