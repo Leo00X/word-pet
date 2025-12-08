@@ -15,6 +15,7 @@
 import { ref } from 'vue';
 import { FloatWindow } from "@/uni_modules/android-floatwindow";
 import { debugLog } from '@/utils/debugLog.js';
+import { useLive2dLoader } from './useLive2dLoader.js';
 
 // 悬浮窗尺寸配置 - 根据版本使用不同尺寸
 const FLOAT_SIZES_V1 = {
@@ -72,19 +73,32 @@ export function useFloatWindow(options = {}) {
         try {
             // 根据版本选择 HTML 文件
             let htmlFile = '/static/pet.html'; // v1 默认
+            let absolutePath;
+
             if (petHtmlVersion.value === 'v2') {
                 htmlFile = '/static/pet-v2.html';
             } else if (petHtmlVersion.value === 'live2d') {
                 htmlFile = '/static/pet-live2d.html';
             }
-            const absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
-            debugLog('[Float] 加载 HTML:', htmlFile);
+            absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
+            debugLog('[Float] 加载 HTML:', absolutePath);
 
             if (!floatWinInstance.value) {
                 floatWinInstance.value = new FloatWindow();
             }
 
             floatWinInstance.value.loadUrl(absolutePath);
+
+            // Live2D 模式: 页面加载后发送模型数据
+            if (petHtmlVersion.value === 'live2d') {
+                const live2dLoader = useLive2dLoader();
+                // 延迟等待页面加载完成
+                setTimeout(async () => {
+                    debugLog('[Float] 开始加载 Live2D 模型数据...');
+                    const currentModel = uni.getStorageSync('live2d_model') || 'hiyori';
+                    await live2dLoader.sendModelToFloatWindow(floatWinInstance.value, currentModel);
+                }, 1500); // 1.5秒后发送模型数据
+            }
             setFloatSize('NORMAL');
 
             // 初始位置：屏幕右下角
