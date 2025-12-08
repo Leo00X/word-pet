@@ -34,13 +34,13 @@ const FLOAT_SIZES_V2 = {
     FULL: { w: 300, h: 300 }    // 警告模式
 };
 
-// Live2D 版本尺寸配置 (需要更大的画布以渲染完整模型)
+// Live2D 版本尺寸配置 (Hiyori 模型比例约 2:3)
 const FLOAT_SIZES_LIVE2D = {
-    SMALL: { w: 80, h: 100 },   // 迷你版
-    NORMAL: { w: 200, h: 300 }, // Live2D 默认（更大以显示完整模型）
-    BUBBLE: { w: 200, h: 300 }, // 气泡模式
-    LARGE: { w: 280, h: 400 },  // 大对话模式
-    FULL: { w: 350, h: 450 }    // 全屏模式
+    SMALL: { w: 80, h: 120 },   // 迷你版
+    NORMAL: { w: 160, h: 240 }, // Live2D 默认（紧凑）
+    BUBBLE: { w: 180, h: 270 }, // 气泡模式
+    LARGE: { w: 220, h: 330 },  // 大对话模式
+    FULL: { w: 280, h: 420 }    // 全屏模式
 };
 
 export function useFloatWindow(options = {}) {
