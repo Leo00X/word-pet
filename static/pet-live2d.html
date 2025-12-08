@@ -99,7 +99,6 @@
     <script>
         let app = null, model = null, bubbleTimer = null;
 
-        // 初始化 PIXI 应用
         function initApp() {
             if (app) return;
             app = new PIXI.Application({
@@ -124,33 +123,73 @@
             return new Blob([array], { type: mime });
         }
 
-        // 从 File 对象数组加载模型
+        // 从文件数据加载模型 - 使用 Object URL 方案
         async function loadModelFromFiles(filesData, modelName) {
-            console.log('[Live2D] 开始从文件数据加载模型, 共', filesData.length, '个文件');
+            console.log('[Live2D] 开始加载模型, 共', filesData.length, '个文件');
             setLoadingText('正在处理文件...');
 
             try {
-                // 转换为 File 对象
-                const fileObjects = filesData.map(f => {
-                    const blob = dataURLToBlob(f.data);
-                    const file = new File([blob], f.name, { type: blob.type });
-                    // 设置相对路径 (pixi-live2d-display 需要这个属性)
-                    Object.defineProperty(file, 'webkitRelativePath', {
-                        value: f.path,
-                        writable: false
-                    });
-                    return file;
-                });
+                // 1. 为每个文件创建 Object URL 和路径映射
+                const urlMap = {};
+                let settingsJSON = null;
+                let settingsPath = null;
 
-                console.log('[Live2D] File 对象创建完成, 开始加载模型');
+                for (const f of filesData) {
+                    const blob = dataURLToBlob(f.data);
+                    const objectURL = URL.createObjectURL(blob);
+                    urlMap[f.path] = objectURL;
+                    console.log(`[Live2D] URL映射: ${f.path} -> ${objectURL.substring(0, 30)}...`);
+
+                    // 找到 settings 文件
+                    if (f.path.endsWith('.model.json') || f.path.endsWith('.model3.json')) {
+                        settingsPath = f.path;
+                        // 解析 settings JSON
+                        const text = atob(f.data.split(',')[1]);
+                        settingsJSON = JSON.parse(text);
+                        console.log('[Live2D] 找到 settings 文件:', f.path);
+                    }
+                }
+
+                if (!settingsJSON) {
+                    throw new Error('未找到 model.json 或 model3.json 文件');
+                }
+
                 setLoadingText('正在加载模型...');
 
-                // 使用 pixi-live2d-display 的 FileLoader
+                // 2. 设置 url 属性 (虚拟路径，用于解析相对路径)
+                settingsJSON.url = settingsPath;
+
+                // 3. 创建自定义 URL 解析器
+                const customResolver = (settingsURL, path) => {
+                    // 获取基础目录
+                    const baseDir = settingsURL.substring(0, settingsURL.lastIndexOf('/') + 1);
+                    const fullPath = baseDir + path;
+                    const resolved = urlMap[fullPath] || urlMap[path];
+                    console.log(`[Live2D] resolveURL: ${path} -> ${resolved ? 'found' : 'NOT FOUND'}`);
+                    return resolved || path;
+                };
+
+                // 4. 使用 Live2DModel 加载
                 if (!PIXI?.live2d?.Live2DModel) {
                     throw new Error('Live2DModel 未定义');
                 }
 
-                model = await PIXI.live2d.Live2DModel.from(fileObjects, {
+                // 创建模型设置并覆盖 resolveURL
+                const ModelSettingsClass = settingsPath.endsWith('.model3.json')
+                    ? PIXI.live2d.Cubism4ModelSettings
+                    : PIXI.live2d.Cubism2ModelSettings;
+
+                const settings = new ModelSettingsClass(settingsJSON);
+
+                // 覆盖 URL 解析方法
+                const originalResolve = settings.resolveURL.bind(settings);
+                settings.resolveURL = (path) => {
+                    const resolved = urlMap[path] || customResolver(settingsPath, path);
+                    return resolved;
+                };
+
+                console.log('[Live2D] 开始创建模型...');
+                model = await PIXI.live2d.Live2DModel.from(settings, {
                     autoInteract: false
                 });
 
@@ -217,23 +256,12 @@
             try { if (typeof msg === 'string' && msg.startsWith('{')) data = JSON.parse(msg); } catch (e) { }
 
             switch (type) {
-                case 0: // 隐藏气泡
-                    document.getElementById('bubble').classList.remove('show');
-                    break;
-                case 1: // 显示消息
-                    showBubble(typeof data === 'string' ? data : data.message || data.text);
-                    break;
-                case 2: // 愤怒消息
-                    showBubble(typeof data === 'string' ? data : data.message);
-                    if (model) model.expression('angry');
-                    break;
-                case 10: // 播放动作
-                    if (model && data.motion) model.motion(data.motion);
-                    break;
-                case 11: // 切换表情
-                    if (model && data.expression) model.expression(data.expression);
-                    break;
-                case 200: // 加载模型数据 (核心!)
+                case 0: document.getElementById('bubble').classList.remove('show'); break;
+                case 1: showBubble(typeof data === 'string' ? data : data.message || data.text); break;
+                case 2: showBubble(typeof data === 'string' ? data : data.message); if (model) model.expression('angry'); break;
+                case 10: if (model && data.motion) model.motion(data.motion); break;
+                case 11: if (model && data.expression) model.expression(data.expression); break;
+                case 200:
                     console.log('[Live2D] 收到模型数据, 文件数:', data.files?.length);
                     initApp();
                     if (data.files && data.files.length > 0) {
@@ -243,7 +271,6 @@
             }
         };
 
-        // 页面加载后初始化 PIXI
         window.addEventListener('DOMContentLoaded', () => {
             console.log('[Live2D] 页面加载完成, 等待模型数据');
             initApp();
