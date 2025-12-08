@@ -16,12 +16,20 @@ import { ref } from 'vue';
 import { FloatWindow } from "@/uni_modules/android-floatwindow";
 import { debugLog } from '@/utils/debugLog.js';
 
-// 悬浮窗尺寸配置 - 固定大尺寸以显示气泡
-const FLOAT_SIZES = {
+// 悬浮窗尺寸配置 - 根据版本使用不同尺寸
+const FLOAT_SIZES_V1 = {
     SMALL: { w: 60, h: 60 },    // 迷你球
-    NORMAL: { w: 160, h: 180 }, // 默认（包含气泡空间）
-    BUBBLE: { w: 160, h: 180 }, // 显示气泡时
-    LARGE: { w: 200, h: 220 },  // 大对话
+    NORMAL: { w: 160, h: 180 }, // v1 默认
+    BUBBLE: { w: 160, h: 180 }, // v1 气泡
+    LARGE: { w: 200, h: 220 },  // v1 大对话
+    FULL: { w: 300, h: 300 }    // 警告模式
+};
+
+const FLOAT_SIZES_V2 = {
+    SMALL: { w: 60, h: 60 },    // 迷你球
+    NORMAL: { w: 160, h: 240 }, // v2 默认（更大以容纳顶部气泡）
+    BUBBLE: { w: 160, h: 240 }, // v2 气泡
+    LARGE: { w: 200, h: 280 },  // v2 大对话
     FULL: { w: 300, h: 300 }    // 警告模式
 };
 
@@ -39,6 +47,7 @@ export function useFloatWindow(options = {}) {
     const petMessage = ref("等待指令...");
     const floatWinInstance = ref(null);
     const currentSize = ref('NORMAL');
+    const petHtmlVersion = ref(uni.getStorageSync('pet_html_version') || 'v1'); // 'v1' | 'v2'
 
     /**
      * 显示悬浮窗
@@ -52,8 +61,10 @@ export function useFloatWindow(options = {}) {
         }
 
         try {
-            const rawPath = '/static/pet.html';
-            const absolutePath = plus.io.convertLocalFileSystemURL(rawPath);
+            // 根据版本选择 HTML 文件
+            const htmlFile = petHtmlVersion.value === 'v2' ? '/static/pet-v2.html' : '/static/pet.html';
+            const absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
+            debugLog('[Float] 加载 HTML:', htmlFile);
 
             if (!floatWinInstance.value) {
                 floatWinInstance.value = new FloatWindow();
@@ -202,7 +213,9 @@ export function useFloatWindow(options = {}) {
             return;
         }
 
-        const config = FLOAT_SIZES[size] || FLOAT_SIZES.NORMAL;
+        // 根据版本选择尺寸配置
+        const SIZES = petHtmlVersion.value === 'v2' ? FLOAT_SIZES_V2 : FLOAT_SIZES_V1;
+        const config = SIZES[size] || SIZES.NORMAL;
         const w = floatWinInstance.value.convertHtmlPxToAndroidPx(config.w);
         const h = floatWinInstance.value.convertHtmlPxToAndroidPx(config.h);
 
@@ -238,12 +251,37 @@ export function useFloatWindow(options = {}) {
         petMessage.value = isPetShown.value ? "我在看着你..." : "zzz...";
     };
 
+    /**
+     * [v2.0] 切换宠物 HTML 版本
+     * @param {string} version - 'v1' | 'v2'
+     */
+    const setPetVersion = (version) => {
+        if (version !== 'v1' && version !== 'v2') {
+            debugLog('[Float] 无效版本:', version);
+            return;
+        }
+        petHtmlVersion.value = version;
+        uni.setStorageSync('pet_html_version', version);
+        debugLog('[Float] 切换宠物版本:', version);
+
+        // 如果悬浮窗正在显示，需要重新加载并更新尺寸
+        if (isPetShown.value && floatWinInstance.value) {
+            const htmlFile = version === 'v2' ? '/static/pet-v2.html' : '/static/pet.html';
+            const absolutePath = plus.io.convertLocalFileSystemURL(htmlFile);
+            floatWinInstance.value.loadUrl(absolutePath);
+            // 同步更新悬浮窗尺寸以匹配新版本
+            setFloatSize(currentSize.value);
+            debugLog('[Float] 重新加载:', htmlFile);
+        }
+    };
+
     return {
         // 状态
         isPetShown,
         petMessage,
         floatWinInstance,
         currentSize,
+        petHtmlVersion,
         // 方法
         showFloatWindow,
         hideFloatWindow,
@@ -253,8 +291,10 @@ export function useFloatWindow(options = {}) {
         setFloatSize,
         setSidePattern,
         reinitInstance,
+        setPetVersion,
         // 常量
-        FLOAT_SIZES
+        FLOAT_SIZES_V1,
+        FLOAT_SIZES_V2
     };
 }
 

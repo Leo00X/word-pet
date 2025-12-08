@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pet v2.0 - 分层宠物</title>
+    <style>
+        /* ========== 全局重置 ========== */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: none;
+        }
+
+        /* ========== 容器 ========== */
+        .container {
+            position: relative;
+            width: 120px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        /* ========== 对话气泡 ========== */
+        .bubble {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: rgba(0, 0, 0, 0.85);
+            color: #00e676;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            max-width: 140px;
+            min-width: 80px;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            border: 1px solid #333;
+            white-space: nowrap;
+            z-index: 100;
+        }
+
+        .bubble.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+        }
+
+        /* ========== 宠物区域 - 单图+热区模式 ========== */
+        .pet-area {
+            position: relative;
+            width: 100px;
+            height: 120px;
+        }
+
+        .pet-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            filter: drop-shadow(0 0 12px rgba(102, 126, 234, 0.6));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        /* ========== 热区层 ========== */
+        .hit-areas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hit-area {
+            position: absolute;
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 6px;
+        }
+
+        .hit-area:active {
+            background: rgba(255, 102, 204, 0.25);
+        }
+
+        .hit-area.touched {
+            background: rgba(255, 102, 204, 0.4);
+            animation: hitPulse 0.3s ease;
+        }
+
+        @keyframes hitPulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* 热区定位 (适配 622x646 图片) */
+        .hit-area.head {
+            top: 7%;
+            left: 20%;
+            width: 60%;
+            height: 28%;
+            border-radius: 50% 50% 0 0;
+        }
+
+        .hit-area.body {
+            top: 35%;
+            left: 25%;
+            width: 50%;
+            height: 25%;
+        }
+
+        .hit-area.left-arm {
+            top: 42%;
+            left: 2%;
+            width: 23%;
+            height: 18%;
+            border-radius: 50%;
+        }
+
+        .hit-area.right-arm {
+            top: 42%;
+            right: 2%;
+            width: 23%;
+            height: 18%;
+            border-radius: 50%;
+        }
+
+        .hit-area.left-leg {
+            top: 60%;
+            left: 15%;
+            width: 35%;
+            height: 33%;
+            border-radius: 0 0 0 50%;
+        }
+
+        .hit-area.right-leg {
+            top: 60%;
+            right: 15%;
+            width: 35%;
+            height: 33%;
+            border-radius: 0 0 50% 0;
+        }
+
+        .pet-area.anim-angry .pet-image {
+            animation: shake 0.3s ease infinite;
+            filter: drop-shadow(0 0 15px rgba(255, 68, 68, 0.7));
+        }
+
+        .pet-area.anim-interact .pet-image {
+            animation: heartbeat 0.6s ease;
+            filter: drop-shadow(0 0 20px rgba(255, 102, 204, 0.8));
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-12px) scale(1.05);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateX(-4px) rotate(-3deg);
+            }
+
+            75% {
+                transform: translateX(4px) rotate(3deg);
+            }
+        }
+
+        @keyframes heartbeat {
+            0% {
+                transform: scale(1);
+            }
+
+            25% {
+                transform: scale(1.15);
+            }
+
+            50% {
+                transform: scale(1);
+            }
+
+            75% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="petArea">
+        <!-- 对话气泡 -->
+        <div class="bubble" id="bubble">Pet v2.0</div>
+
+        <!-- 宠物区域 -->
+        <div class="pet-area" id="petDisplay">
+            <!-- 完整宠物图片 -->
+            <img class="pet-image" id="petImage" src="skins/default-ghost/full.png" alt="pet">
+
+            <!-- 热区层 -->
+            <div class="hit-areas">
+                <div class="hit-area head" data-part="head"></div>
+                <div class="hit-area body" data-part="body"></div>
+                <div class="hit-area left-arm" data-part="left-arm"></div>
+                <div class="hit-area right-arm" data-part="right-arm"></div>
+                <div class="hit-area left-leg" data-part="left-leg"></div>
+                <div class="hit-area right-leg" data-part="right-leg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 元素引用 ==========
+        const petArea = document.getElementById('petArea');
+        const petDisplay = document.getElementById('petDisplay');
+        const petImage = document.getElementById('petImage');
+        const bubble = document.getElementById('bubble');
+        const hitAreas = document.querySelectorAll('.hit-area');
+
+        // ========== 状态 ==========
+        let bubbleTimer = null;
+        let currentState = 'idle';
+
+        // ========== 初始化热区点击事件 ==========
+        hitAreas.forEach(area => {
+            area.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const partName = area.dataset.part;
+
+                // 视觉反馈
+                area.classList.add('touched');
+                setTimeout(() => area.classList.remove('touched'), 300);
+
+                // 整体互动动画
+                petDisplay.classList.add('anim-interact');
+                setTimeout(() => petDisplay.classList.remove('anim-interact'), 600);
+
+                // 气泡由 uni-app 通过 dataFromUniapp 填充，不在此处硬编码
+
+                // 发送到 App
+                sendGestureToApp('TAP', { part: partName });
+                console.log('[Pet v2] 点击部位:', partName);
+            });
+        });
+
+        // 容器整体点击
+        petArea.addEventListener('click', (e) => {
+            if (e.target === petArea || e.target === petDisplay || e.target === petImage) {
+                petDisplay.classList.add('anim-interact');
+                setTimeout(() => petDisplay.classList.remove('anim-interact'), 600);
+                sendGestureToApp('TAP', { part: 'body' });
+            }
+        });
+
+        // ========== 部位名称映射 ==========
+        function getPartName(part) {
+            const names = {
+                'head': '头部',
+                'body': '身体',
+                'left-arm': '左手',
+                'right-arm': '右手',
+                'left-leg': '左脚',
+                'right-leg': '右脚'
+            };
+            return names[part] || part;
+        }
+
+        // ========== 气泡控制 ==========
+        function showBubble(text, duration = 2000) {
+            if (bubbleTimer) clearTimeout(bubbleTimer);
+
+            bubble.textContent = text;
+            bubble.classList.add('show');
+
+            if (duration > 0) {
+                bubbleTimer = setTimeout(() => {
+                    bubble.classList.remove('show');
+                }, duration);
+            }
+        }
+
+        function hideBubble() {
+            bubble.classList.remove('show');
+            if (bubbleTimer) {
+                clearTimeout(bubbleTimer);
+                bubbleTimer = null;
+            }
+        }
+
+        // ========== 状态切换 ==========
+        function changeState(state) {
+            currentState = state;
+
+            // 移除旧动画类
+            petDisplay.classList.remove('anim-idle', 'anim-happy', 'anim-angry', 'anim-interact');
+
+            // 添加新状态
+            if (state && state !== 'idle') {
+                petDisplay.classList.add('anim-' + state);
+            }
+        }
+
+        // ========== 切换皮肤图片 ==========
+        function changeSkin(imageSrc) {
+            petImage.src = imageSrc;
+            console.log('[Pet v2] 切换皮肤:', imageSrc);
+        }
+
+        // ========== 发送手势到 App ==========
+        function sendGestureToApp(gesture, data = {}) {
+            const message = {
+                gesture: gesture,
+                part: data.part || null,
+                timestamp: Date.now()
+            };
+
+            // 使用悬浮窗插件的正确 API
+            if (typeof uniapp !== 'undefined' && uniapp.sendDataToUni) {
+                uniapp.sendDataToUni(100, JSON.stringify(message));
+                console.log('[Pet v2] 发送手势:', gesture, message);
+            } else {
+                console.warn('[Pet v2] uniapp.sendDataToUni 不可用');
+            }
+        }
+
+        // ========== 接收 uni-app 消息 ==========
+        window.dataFromUniapp = function (type, msg) {
+            console.log('[Pet v2] 收到消息:', type, msg);
+
+            try {
+                let data = msg;
+                if (typeof msg === 'string' && (msg.startsWith('{') || msg.startsWith('['))) {
+                    data = JSON.parse(msg);
+                }
+
+                switch (type) {
+                    case 0: // 隐藏气泡
+                        hideBubble();
+                        break;
+
+                    case 1: // 显示消息
+                        showBubble(typeof data === 'string' ? data : data.message);
+                        changeState('idle');
+                        break;
+
+                    case 2: // 愤怒消息
+                        showBubble(typeof data === 'string' ? data : data.message);
+                        changeState('angry');
+                        break;
+
+                    case 3: // 恢复正常
+                        changeState('idle');
+                        break;
+
+                    case 98: // 动画状态切换
+                        if (data.state) changeState(data.state);
+                        break;
+
+                    case 99: // 皮肤切换
+                        if (data.fullImage) {
+                            changeSkin(data.fullImage);
+                        }
+                        break;
+
+                    default:
+                        console.log('[Pet v2] 未知消息类型:', type);
+                }
+            } catch (err) {
+                console.error('[Pet v2] 消息处理错误:', err);
+            }
+        };
+
+        // ========== 初始化 ==========
+        console.log('[Pet v2] 初始化完成');
+    </script>
+</body>
+
+</html>

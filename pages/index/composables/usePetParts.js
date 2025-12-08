@@ -79,6 +79,57 @@ export function usePetParts(options = {}) {
     const lastTouchedPart = ref(null);
     const interactionCooldown = ref(false);
     const touchCounts = ref({});  // 记录各部位触摸次数
+    const aiTriggerCounter = ref(0);  // 累积点击计数（用于 AI 触发策略）
+
+    // ========== AI 触发策略配置 ==========
+    const AI_TRIGGER_CONFIG = {
+        minClicks: 3,           // 最少点击 3 次后开始随机
+        maxClicks: 8,           // 点击 8 次必触发 AI
+        baseProbability: 0.30,  // 基础 30% 概率
+        moodBonus: 0.15         // 高心情(>80)额外 15% 概率
+    };
+
+    /**
+     * 判断是否应该触发 AI
+     * @param {number} mood - 当前心情值
+     * @returns {boolean}
+     */
+    const shouldTriggerAI = (mood = 50) => {
+        aiTriggerCounter.value++;
+
+        // 点击次数 < 最小次数：100% 本地
+        if (aiTriggerCounter.value < AI_TRIGGER_CONFIG.minClicks) {
+            debugLog('[PetParts] 点击次数不足，使用本地:', aiTriggerCounter.value);
+            return false;
+        }
+
+        // 点击次数 >= 最大次数：100% AI 并重置
+        if (aiTriggerCounter.value >= AI_TRIGGER_CONFIG.maxClicks) {
+            debugLog('[PetParts] 达到最大点击，触发 AI');
+            aiTriggerCounter.value = 0;
+            return true;
+        }
+
+        // 计算概率：基础概率 + 心情加成
+        let probability = AI_TRIGGER_CONFIG.baseProbability;
+        if (mood > 80) {
+            probability += AI_TRIGGER_CONFIG.moodBonus;
+        }
+
+        const shouldTrigger = Math.random() < probability;
+        debugLog('[PetParts] AI 触发判断:', {
+            clicks: aiTriggerCounter.value,
+            probability,
+            mood,
+            triggered: shouldTrigger
+        });
+
+        if (shouldTrigger) {
+            aiTriggerCounter.value = 0;  // 触发后重置
+        }
+
+        return shouldTrigger;
+    };
 
     // ========== 计算属性 ==========
     const availableParts = computed(() => Object.keys(PET_PARTS));
@@ -144,13 +195,16 @@ export function usePetParts(options = {}) {
             }
         }
 
-        // 3. 请求 AI 响应
+        // 3. 根据策略决定使用本地词库还是 AI
+        const mood = growthInstance?.mood?.value || 50;
         let aiResponse = null;
-        if (aiControllerInstance) {
+
+        if (aiControllerInstance && shouldTriggerAI(mood)) {
+            // 触发 AI 响应
             const prompt = getRandomItem(config.aiPrompts);
-            const mood = growthInstance?.mood?.value || 80;
 
             try {
+                debugLog('[PetParts] 触发 AI 响应...');
                 aiResponse = await aiControllerInstance.requestResponse({
                     action: prompt,
                     part: partName,
@@ -164,16 +218,15 @@ export function usePetParts(options = {}) {
                     onSendToFloat(1, aiResponse.text);
                 }
             } catch (err) {
-                debugLog('[PetParts] AI 响应失败:', err);
-                // 降级：使用本地响应
-                const localResponse = getLocalPartResponse(partName, config);
+                debugLog('[PetParts] AI 响应失败，降级本地:', err);
+                const localResponse = getLocalPartResponse(partName, config, mood);
                 if (onSendToFloat) {
                     onSendToFloat(1, localResponse);
                 }
             }
         } else {
-            // 无 AI 时使用本地响应
-            const localResponse = getLocalPartResponse(partName, config);
+            // 使用本地词库响应（节省 token）
+            const localResponse = getLocalPartResponse(partName, config, mood);
             if (onSendToFloat) {
                 onSendToFloat(1, localResponse);
             }
@@ -190,18 +243,113 @@ export function usePetParts(options = {}) {
     };
 
     /**
-     * 获取本地部位响应（AI 降级方案）
+     * 获取本地部位响应（根据心情选择）
+     * @param {string} partName - 部位名称
+     * @param {Object} config - 部位配置
+     * @param {number} mood - 心情值 (0-100)
      */
-    const getLocalPartResponse = (partName, config) => {
-        const responses = {
-            head: ['嘿嘿，好舒服~', '哇，被摸头了！', '(*≧ω≦) 头好痒~', '再摸摸嘛~'],
-            body: ['咯咯咯，好痒！', '呜哇~被戳肚子了', '(>﹏<) 别戳啦', '肚肚不是用来戳的！'],
-            'left-arm': ['握手！🤝', '你好你好~', '(*´∀`*) 牵手手', '左手给你啦~'],
-            'right-arm': ['击掌！✋', 'Yeah！', '(￣▽￣)ノ High Five!', '耶~'],
-            'left-leg': ['踢踢踢~', '别踢我脚！', '(╯°□°)╯', '脚痒痒~'],
-            'right-leg': ['跺跺脚！', '踩踩踩~', '٩(๑❛ᴗ❛๑)۶', '右脚也想动~']
+    const getLocalPartResponse = (partName, config, mood = 50) => {
+        // 心情分级词库
+        const moodResponses = {
+            head: {
+                happy: [
+                    '嘿嘿~超级舒服！✨', '耶！被摸头超开心！', '(*≧ω≦) 再摸再摸!', '头顶发光了~💡',
+                    '好喜欢被这样摸摸~😊', '感觉充满了能量！⚡', '嘻嘻，你也开心吗？', '摸得我好想睡觉觉~😴'
+                ],
+                normal: [
+                    '嘿嘿，好舒服~', '哇，被摸头了！', '(*≧ω≦) 头好痒~', '再摸摸嘛~',
+                    '你的手好暖和呀~', '蹭蹭你的手~', '摸摸头会长不高的！🤨', '好痒好痒哈哈哈！'
+                ],
+                sad: [
+                    '嗯...谢谢你', '(´；ω；`) 好暖', '摸摸也许能好点...', '...',
+                    '有点不想说话...', '希望能开心起来...', '谢谢你的安慰...', '(´-ω-`) 嗯...'
+                ]
+            },
+            body: {
+                happy: [
+                    '咯咯咯~痒死啦！😆', '抱抱我嘛~', '呜哇~肚肚被戳！', '嘻嘻嘻~',
+                    '肚肚是软软的吗？', '别闹啦哈哈哈！', '再戳我就要反击啦！', '好痒好痒受不了啦！'
+                ],
+                normal: [
+                    '咯咯咯，好痒！', '呜哇~被戳肚子了', '(>﹏<) 别戳啦', '肚肚不是用来戳的！',
+                    '也许我该减肥了？🤔', '戳出一个洞怎么办！', '那是我的开关吗？', '好奇怪的感觉...'
+                ],
+                sad: [
+                    '轻点...', '(っ´ω`c) 好累', '没力气躲了...', '...',
+                    '别闹了...', '只想静静...', '...不想动', '肚子不舒服...'
+                ]
+            },
+            'left-arm': {
+                happy: [
+                    '握手握手！🤝✨', '牵手手超棒！', '(*´∀`*) 左手给你！', '耶！朋友！',
+                    '抓紧我哦！', '这是友谊的证明！', '我们的手一样大吗？', '摇一摇~晃一晃~'
+                ],
+                normal: [
+                    '握手！🤝', '你好你好~', '(*´∀`*) 牵手手', '左手给你啦~',
+                    '拉勾上吊一百年不许变！', '这是一只幸运的左手！', '可以牵着我去玩吗？', '握手通常表示友好！'
+                ],
+                sad: [
+                    '...牵着我', '别松手好吗', '(´；ω；`)', '...',
+                    '我需要一点力量...', '拉住我...', '有点冷...', '...嗯'
+                ]
+            },
+            'right-arm': {
+                happy: [
+                    'High Five!!!✋🔥', 'Yeah！！！', '(￣▽￣)ノ 耶耶耶!', '击掌成功！💥',
+                    '我们是最棒的拍档！', '默契满分！💯', '再来一次！啪！', '充满力量的一击！'
+                ],
+                normal: [
+                    '击掌！✋', 'Yeah！', '(￣▽￣)ノ High Five!', '耶~',
+                    'Give me five!', '你的手速好快！', '啪！响亮的一声！', '这就是默契！'
+                ],
+                sad: [
+                    '...', '没力气抬手了', '(´-ω-`)', '...',
+                    '下次再击掌吧...', '手好重...', '没什么心情...', '唉...'
+                ]
+            },
+            'left-leg': {
+                happy: [
+                    '踢踢踢~跳舞！💃', '蹦蹦跳跳！', '٩(๑❛ᴗ❛๑)۶ 左脚开心！', '踩踩踩~',
+                    '像弹簧一样！', '我要跳到月球上去！🚀', '这就是节奏感！', '左脚先迈出第一步！'
+                ],
+                normal: [
+                    '踢踢踢~', '别踢我脚！', '(╯°□°)╯', '脚痒痒~',
+                    '这双鞋好看吗？', '小心别被我绊倒！', '我在练无影脚！', '动次打次~'
+                ],
+                sad: [
+                    '...不想动', '脚好沉', '(´-ω-`)', '...',
+                    '走不动了...', '想休息...', '每一步都好累...', '...'
+                ]
+            },
+            'right-leg': {
+                happy: [
+                    '跺跺跳跳！🦶✨', '右脚也要动！', '٩(๑❛ᴗ❛๑)۶ Yeah!', '踩踩踩~',
+                    '右脚也不甘示弱！', '踢踏舞时间！', '地板在震动！', '充满活力的右脚！'
+                ],
+                normal: [
+                    '跺跺脚！', '踩踩踩~', '٩(๑❛ᴗ❛๑)۶', '右脚也想动~',
+                    '这只脚比较灵活！', '我在打拍子！', '咚咚咚！', '别踩到我！'
+                ],
+                sad: [
+                    '...', '累', '不想动', '...',
+                    '一步也不想走...', '好沉重...', '没力气...', '歇会儿吧...'
+                ]
+            }
         };
-        return getRandomItem(responses[partName] || ['喵？']);
+
+        // 根据心情选择词库
+        const partMoodResponses = moodResponses[partName] || { normal: ['喵？'] };
+        let selectedPool;
+
+        if (mood >= 80) {
+            selectedPool = partMoodResponses.happy || partMoodResponses.normal;
+        } else if (mood <= 30) {
+            selectedPool = partMoodResponses.sad || partMoodResponses.normal;
+        } else {
+            selectedPool = partMoodResponses.normal;
+        }
+
+        return getRandomItem(selectedPool);
     };
 
     // ========== 工具函数 ==========

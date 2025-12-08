@@ -251,15 +251,15 @@ export function usePetInteraction(options = {}) {
             try {
                 const event = typeof data === 'string' ? JSON.parse(data) : data;
 
-                // [Phase 4] 部位点击处理
-                if (event.gesture === 'PART_TAP' && event.part) {
+                // [Phase 4] 部位点击处理 - 当收到带有 part 字段的 TAP 手势时
+                if (event.part && (event.gesture === 'TAP' || event.gesture === 'PART_TAP')) {
                     debugLog('[Interaction] 部位点击:', event.part);
                     petParts.handlePartInteraction(event.part, event);
                     return;
                 }
 
                 // [Phase 4] 部位长按处理
-                if (event.gesture === 'PART_LONG_PRESS' && event.part) {
+                if (event.part && (event.gesture === 'LONG_PRESS' || event.gesture === 'PART_LONG_PRESS')) {
                     debugLog('[Interaction] 部位长按:', event.part);
                     petParts.handlePartInteraction(event.part, { ...event, isLongPress: true });
                     return;

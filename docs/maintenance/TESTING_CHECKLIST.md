@@ -47,14 +47,12 @@
 
 ### #T3 每日统计重置
 
-**状态**: 新增  
+**状态**: ✅ 已验证 (代码无 Bug)  
 **触发条件**: `checkAndResetDailyStats()` 在 onShow 检测日期变化
 
-**测试要点**:
-- 跨天后检查统计是否重置
-- 验证日期判断逻辑
+**验证结果**: `usePageLifecycle.initializePage()` 在 `onShow` 中正确调用 `checkAndResetDailyStats()`，跨天重置逻辑完整。
 
-**相关文件**: `useGrowth.js`
+**相关文件**: `usePageLifecycle.js` (L34-43, L118)
 
 ---
 
@@ -74,8 +72,10 @@
 
 ### #T5 AI降级策略
 
-**状态**: 未测试  
+**状态**: ✅ 已实现，待真机验证  
 **来源**: 悬浮窗交互系统 Phase 3
+
+**代码审查**: `useAIFallback.js` (280行) 完整实现 4 级降级策略，已被 `useAIController.js` 集成使用。
 
 **待验证**:
 - 测试 AI 降级策略触发条件
@@ -88,8 +88,10 @@
 
 ### #T6 互动链步骤
 
-**状态**: 未测试  
+**状态**: ✅ 已实现，待真机验证  
 **来源**: 悬浮窗交互系统 Phase 4
+
+**代码审查**: `useInteractionChain.js` (228行) 完整实现互动链，已被 `usePetInteraction.js` 集成使用。
 
 **待验证**:
 - 验证早晨问候链
@@ -97,7 +99,7 @@
 - 测试学习里程碑庆祝
 - 调整互动链步骤时长和文案
 
-**相关文件**: `useInteractionChain.js`
+**相关文件**: `useInteractionChain.js`, `usePetInteraction.js`
 
 ---
 
@@ -161,8 +163,8 @@
 
 ### #T11 AI动作字段匹配验证
 
-**状态**: 未测试  
-**依赖**: 需要先修复 BUG#101 (AI响应气泡)
+**状态**: 待真机验证  
+**依赖**: ✅ BUG#101 已修复 (2025-12-06)
 
 **待验证**:
 - 验证宠物动作是否与 AI 返回的 `action` 字段匹配

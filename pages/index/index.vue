@@ -49,7 +49,7 @@
         @open-selector="handlers.openSelector"
         @interval-change="handlers.handleIntervalChange"
         @toggle-random-chat="handlers.handleToggleRandomChat"
-        @toggle-parted-mode="(val) => { partedModeEnabled = val; handlers.handleTogglePartedMode(val) }"
+        @toggle-parted-mode="(val) => { partedModeEnabled = val; floatWindow.setPetVersion(val ? 'v2' : 'v1') }"
         @open-random-history="openModal('randomHistory')"
         @open-terminal="terminal.showTerminal.value = true"
         @clear-chat="chat.clearMessages"
@@ -374,11 +374,8 @@ onShow(() => {
 });
 
 onHide(() => {
-    // 页面隐藏时，如果悬浮窗显示则隐藏并标记
-    if (floatWindow && floatWindow.isPetShown.value) {
-        wasPetShown.value = true;
-        floatWindow.hideFloatWindow();
-    }
+    // [BUG#111] 不再自动隐藏悬浮窗
+    // 悬浮窗应独立于主页面存在，返回桌面时保持显示
 });
 
 // 兼容性别名（lifecycle 需要在模板中使用）
