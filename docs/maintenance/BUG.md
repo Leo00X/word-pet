@@ -491,3 +491,14 @@ const showSkinModal = computed(() => modals.skin);
 **相关文件**:
 - 文件路径1
 - 文件路径2
+```
+
+## ⚠️ 已知限制 (Known Limitations)
+
+### #L01 WebView 本地文件跨域访问限制
+- **问题**: Android WebView 默认禁止 `file://` 协议下的 XHR/Fetch 请求，导致无法直接加载本地 Live2D 模型 (.moc3/.json)
+- **尝试方案**: 尝试调用 `getWebView().getSettings().setAllowFileAccessFromFileURLs(true)`
+- **研究结果**: 
+  - 插件返回的 WebView 对象在 uni-app 层无法正确调用 `getSettings` (返回 null)
+  - H5 页面内 `window.getWebView()` 未能成功启用权限
+- **当前规避**: 继续使用 **Object URL 映射方案** (将本地文件转为 Blob URL加载)，虽然消耗内存但稳定可用
